@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MKTBR Academy+
 
-## Getting Started
+SaaS independente para cursos online com Next.js, React, TypeScript, Tailwind CSS, Supabase, Vercel e Stripe.
 
-First, run the development server:
+Domínio de produção: `mktbr.site`
+
+## Isolamento
+
+Este projeto foi criado fora de `BairroMarketing` em `C:\tmp\Projeto_Mktbr`.
+
+Não reutiliza componentes, rotas, banco, tabelas, autenticação ou configurações de:
+
+- BairroMarketing
+- mdcarvalho.com
+- BairroPay
+
+## Instalação
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variáveis obrigatórias
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+NEXT_PUBLIC_APP_URL=https://mktbr.site
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_ID=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Supabase
 
-## Learn More
+Crie um projeto Supabase novo e separado. Depois execute:
 
-To learn more about Next.js, take a look at the following resources:
+```sql
+-- supabase/migrations/0001_initial_schema.sql
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Tabelas incluídas:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `users`
+- `courses`
+- `modules`
+- `lessons`
+- `enrollments`
+- `lesson_progress`
+- `subscriptions`
+- `payments`
 
-## Deploy on Vercel
+Todas as tabelas públicas possuem RLS habilitado. A função de criação de perfil fica no schema privado `private`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Stripe
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Configure no Stripe:
+
+1. Produto de assinatura mensal.
+2. Price recorrente e salve o ID em `STRIPE_PRICE_ID`.
+3. Webhook para `https://mktbr.site/api/stripe/webhook`.
+4. Eventos recomendados:
+   - `checkout.session.completed`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+
+## Vercel
+
+Crie uma aplicação Vercel separada e conecte ao repositório GitHub separado.
+
+Configuração:
+
+- Framework: Next.js
+- Build: `npm run build`
+- Install: `npm install`
+- Domínio: `mktbr.site`
+
+## Rotas
+
+- `/`
+- `/cursos`
+- `/cursos/[slug]`
+- `/planos`
+- `/sobre`
+- `/contato`
+- `/login`
+- `/cadastro`
+- `/dashboard`
+- `/api/stripe/checkout`
+- `/api/stripe/portal`
+- `/api/stripe/webhook`
+
+## Validação
+
+```bash
+npm run lint
+npm run build
+```
