@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
   title: "Cadastro",
-  description: "Crie sua conta MKTBR Academy+.",
+  description: "Crie sua conta MKTBR Academia.",
 };
 
 export default function CadastroPage() {
@@ -15,7 +15,7 @@ export default function CadastroPage() {
       <main className="bg-slate-50 px-4 py-16">
         <section className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h1 className="text-3xl font-black text-[#061421]">Cadastro</h1>
-          <p className="mt-2 text-slate-600">Crie sua conta para acessar a academy.</p>
+          <p className="mt-2 text-slate-600">Crie sua conta para acessar a academia.</p>
           <div className="mt-6">
             <AuthForm mode="signup" />
           </div>

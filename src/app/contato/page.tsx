@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
   title: "Contato",
-  description: "Contato da MKTBR Academy+.",
+  description: "Contato da MKTBR Academia.",
 };
 
 export default function ContatoPage() {
@@ -13,7 +13,7 @@ export default function ContatoPage() {
       <SiteHeader />
       <Section
         eyebrow="Contato"
-        title="Fale com a MKTBR Academy+"
+        title="Fale com a MKTBR Academia"
         text="Canal preparado para vendas, suporte aos alunos e dúvidas sobre assinatura."
       >
         <form className="grid max-w-2xl gap-4 rounded-lg border border-slate-200 bg-white p-6">

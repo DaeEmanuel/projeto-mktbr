@@ -6,7 +6,7 @@ import { publicCourses } from "@/lib/site";
 
 export const metadata = {
   title: "Cursos",
-  description: "Catálogo inicial de cursos da MKTBR Academy+.",
+  description: "Catalogo inicial de cursos da MKTBR Academia.",
 };
 
 export default function CursosPage() {

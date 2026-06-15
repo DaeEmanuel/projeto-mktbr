@@ -28,7 +28,7 @@ export async function POST() {
     cancel_url: `${appUrl}/planos?checkout=cancelled`,
     metadata: {
       user_id: user.id,
-      product: "mktbr-academy-plus",
+      product: "mktbr-academia",
     },
   });
 

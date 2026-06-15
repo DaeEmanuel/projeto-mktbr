@@ -65,7 +65,7 @@ create table public.lesson_progress (
 create table public.subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null unique references public.users(id) on delete cascade,
-  plan_name text not null default 'Academy Pro',
+  plan_name text not null default 'Academia Pro',
   status text not null default 'pending',
   stripe_customer_id text,
   stripe_subscription_id text,

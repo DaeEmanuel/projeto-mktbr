@@ -7,7 +7,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#061421]/96 text-white backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3" aria-label="MKTBR Academy+">
+        <Link href="/" className="flex items-center gap-3" aria-label="MKTBR Academia">
           <span className="grid size-10 place-items-center rounded-md bg-[#00c853] text-[#061421]">
             <GraduationCap size={23} strokeWidth={2.5} />
           </span>

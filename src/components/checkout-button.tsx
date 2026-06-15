@@ -2,13 +2,24 @@
 
 import { useState } from "react";
 
-export function CheckoutButton() {
+export function CheckoutButton({
+  label = "Assinar com Stripe",
+  stripeUrl,
+}: {
+  label?: string;
+  stripeUrl?: string;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   async function checkout() {
     setLoading(true);
     setError("");
+
+    if (stripeUrl) {
+      window.location.href = stripeUrl;
+      return;
+    }
 
     const response = await fetch("/api/stripe/checkout", {
       method: "POST",
@@ -34,7 +45,7 @@ export function CheckoutButton() {
         disabled={loading}
         className="min-h-12 rounded-md bg-[#061421] px-5 text-sm font-black text-white transition hover:bg-black disabled:opacity-60"
       >
-        {loading ? "Abrindo checkout..." : "Assinar com Stripe"}
+        {loading ? "Abrindo checkout..." : label}
       </button>
       {error ? <p className="text-sm font-bold text-red-600">{error}</p> : null}
     </div>

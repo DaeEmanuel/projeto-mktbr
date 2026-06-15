@@ -1,4 +1,4 @@
-# MKTBR Academy+
+# MKTBR Academia
 
 SaaS independente para cursos online com Next.js, React, TypeScript, Tailwind CSS, Supabase, Vercel e Stripe.
 
@@ -53,8 +53,71 @@ Tabelas incluídas:
 - `lesson_progress`
 - `subscriptions`
 - `payments`
+- `books`
+- `book_sales`
+- `writer_payouts`
+- `social_profiles`
+- `generated_posts`
+- `generated_images`
+- `profile_analysis`
+- `content_calendar`
+- `scheduled_posts`
 
 Todas as tabelas públicas possuem RLS habilitado. A função de criação de perfil fica no schema privado `private`.
+
+## Marketplace de livros
+
+Todo escritor pode cadastrar livros em `/dashboard/escritor`.
+
+Regra financeira:
+
+- Cada venda usa Stripe em modo pagamento unico.
+- A venda bruta fica registrada em `book_sales.sale_amount_cents`.
+- A comissao fixa da plataforma fica registrada em `book_sales.platform_commission_cents`.
+- O valor liquido do escritor fica registrado em `book_sales.writer_net_cents`.
+- A comissao da plataforma e sempre `R$ 5,00` por venda.
+- O repasse pendente ao escritor fica em `writer_payouts`.
+
+Exemplos:
+
+- Livro de R$ 19,90: MKTBR R$ 5,00, escritor R$ 14,90.
+- Livro de R$ 29,90: MKTBR R$ 5,00, escritor R$ 24,90.
+- Livro de R$ 49,90: MKTBR R$ 5,00, escritor R$ 44,90.
+
+Painéis:
+
+- Escritor: `/dashboard/escritor`
+- Administrador: `/dashboard/admin`
+- Marketplace público: `/livros`
+
+## MKTBR Social IA
+
+Modulo de IA para criacao de conteudo em redes sociais.
+
+Rotas:
+
+- `/social-ia`
+- `/social-ia/dashboard`
+- `/social-ia/gerador-posts`
+- `/social-ia/gerador-imagens`
+- `/social-ia/bio-profissional`
+- `/social-ia/analise-perfil`
+- `/social-ia/calendario`
+- `/social-ia/agendamentos`
+
+Limites do plano gratuito:
+
+- 3 posts/mes
+- 1 analise/mes
+- 2 imagens/mes
+
+Planos pagos:
+
+- Pro: `https://buy.stripe.com/8x214o7X24yNajRgVh9EI02`
+- Premium: `https://buy.stripe.com/bJe9AU916c1f3Vt34r9EI03`
+
+Estrutura preparada para integracoes futuras com Instagram, Facebook, LinkedIn,
+Pinterest e Google Business.
 
 ## Stripe
 
@@ -67,6 +130,9 @@ Configure no Stripe:
    - `checkout.session.completed`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
+
+O evento `checkout.session.completed` tambem registra vendas de livros quando
+`metadata.product = book`.
 
 ## Vercel
 

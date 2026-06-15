@@ -17,11 +17,11 @@ export default function Home() {
                 {site.slogan}
               </p>
               <h1 className="mt-5 max-w-4xl text-4xl font-black tracking-tight sm:text-6xl">
-                MKTBR Academy+ — Cursos online para negócios que querem vender mais
+                MKTBR Academia — Cursos online para negócios que querem vender mais
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/72">
-                Uma plataforma SaaS independente para publicar cursos, vender assinaturas
-                com Stripe e acompanhar o progresso dos alunos.
+                Venda cursos online, receba pagamentos por Pix, boleto e cartão e
+                acompanhe o progresso dos seus alunos em um unico lugar.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <ButtonLink href="/cadastro">Começar agora</ButtonLink>
@@ -63,7 +63,7 @@ export default function Home() {
 
         <Section
           eyebrow="Plataforma"
-          title="Tudo que um SaaS de cursos precisa para começar"
+          title="Tudo que uma plataformade cursos precisa para começar"
           text="Autenticação, catálogo, assinatura recorrente, dashboard do aluno e banco Supabase independente."
         >
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

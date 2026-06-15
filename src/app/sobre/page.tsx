@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
   title: "Sobre",
-  description: "Sobre a MKTBR Academy+.",
+  description: "Sobre a MKTBR Academia.",
 };
 
 export default function SobrePage() {
@@ -13,8 +13,8 @@ export default function SobrePage() {
       <SiteHeader />
       <Section
         eyebrow="Sobre"
-        title="Uma academy independente para educação digital"
-        text="MKTBR Academy+ foi estruturada como aplicação, banco, deploy e domínio separados, sem dependência de BairroMarketing, MD Carvalho ou BairroPay."
+        title="A nova forma de ensinar, vender e crescer pela internet"
+        text="O MKTBR Academia nasceu para ajudar professores, escritores, criadores de conteúdo e empreendedores a transformarem conhecimento em renda. Aqui você pode publicar cursos, vender assinaturas, acompanhar alunos e organizar sua presença digital em uma plataforma simples, moderna e profissional."
       >
         <div className="grid gap-4 md:grid-cols-3">
           {["Cursos", "Assinatura", "Comunidade"].map((item) => (

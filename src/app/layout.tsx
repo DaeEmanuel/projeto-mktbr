@@ -5,20 +5,20 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
   title: {
-    default: "MKTBR Academy+ | Plataforma de cursos online",
-    template: "%s | MKTBR Academy+",
+    default: "MKTBR Academia | Plataforma de cursos online",
+    template: "%s | MKTBR Academia",
   },
   description:
     "SaaS independente para cursos online com assinatura Stripe, Supabase, dashboard do aluno e deploy Vercel.",
   keywords: [
-    "MKTBR Academy+",
+    "MKTBR Academia",
     "cursos online",
     "plataforma de cursos",
     "assinatura Stripe",
     "SaaS educação",
   ],
   openGraph: {
-    title: "MKTBR Academy+",
+    title: "MKTBR Academia",
     description: site.slogan,
     url: site.url,
     siteName: site.name,

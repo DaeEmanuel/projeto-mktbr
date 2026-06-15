@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
   title: "Login",
-  description: "Entre na MKTBR Academy+.",
+  description: "Entre na MKTBR Academia.",
 };
 
 export default function LoginPage() {

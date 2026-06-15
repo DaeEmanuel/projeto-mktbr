@@ -32,7 +32,7 @@ export default async function DashboardPage() {
             <p className="text-sm font-black uppercase tracking-wide text-[#00c853]">
               Área do aluno
             </p>
-            <h1 className="text-2xl font-black text-[#061421]">Dashboard MKTBR Academy+</h1>
+            <h1 className="text-2xl font-black text-[#061421]">Dashboard MKTBR Academia</h1>
           </div>
           <Link href="/" className="rounded-md bg-[#061421] px-4 py-2 text-sm font-bold text-white">
             Site
@@ -48,11 +48,37 @@ export default async function DashboardPage() {
             <p className="mt-1 text-lg font-black text-[#061421]">
               {subscription?.status || "pendente"}
             </p>
-            <p className="text-sm text-slate-500">{subscription?.plan_name || "Academy Pro"}</p>
+            <p className="text-sm text-slate-500">{subscription?.plan_name || "Academia Pro"}</p>
           </div>
           <div className="mt-4">
             <PortalButton />
           </div>
+          <nav className="mt-5 grid gap-2">
+            <Link
+              href="/dashboard/escritor"
+              className="rounded-md bg-slate-50 px-3 py-2 text-sm font-black text-[#061421] hover:bg-slate-100"
+            >
+              Painel do escritor
+            </Link>
+            <Link
+              href="/dashboard/admin"
+              className="rounded-md bg-slate-50 px-3 py-2 text-sm font-black text-[#061421] hover:bg-slate-100"
+            >
+              Painel do administrador
+            </Link>
+            <Link
+              href="/livros"
+              className="rounded-md bg-slate-50 px-3 py-2 text-sm font-black text-[#061421] hover:bg-slate-100"
+            >
+              Marketplace de livros
+            </Link>
+            <Link
+              href="/social-ia/dashboard"
+              className="rounded-md bg-slate-50 px-3 py-2 text-sm font-black text-[#061421] hover:bg-slate-100"
+            >
+              MKTBR Social IA
+            </Link>
+          </nav>
         </aside>
 
         <section className="grid gap-6">
