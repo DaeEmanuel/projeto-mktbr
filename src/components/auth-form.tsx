@@ -45,6 +45,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           Nome
           <input
             required
+            autoComplete="name"
+            id="name"
+            name="name"
             value={name}
             onChange={(event) => setName(event.target.value)}
             className="min-h-12 rounded-md border border-slate-200 px-4 outline-none focus:border-[#00c853]"
@@ -56,6 +59,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         Email
         <input
           required
+          autoComplete="email"
+          name="email"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -67,12 +72,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         Senha
         <input
           required
-          minLength={6}
+          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          id="password"
+          minLength={8}
+          name="password"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className="min-h-12 rounded-md border border-slate-200 px-4 outline-none focus:border-[#00c853]"
-          placeholder="Mínimo 6 caracteres"
+          placeholder="Minimo 8 caracteres"
         />
       </label>
       <button
