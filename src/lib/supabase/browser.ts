@@ -1,14 +1,10 @@
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
+import { getSupabasePublicConfig } from "./env";
 
 export function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase public environment variables are not configured.");
-  }
+  const { supabaseUrl, supabaseAnonKey } = getSupabasePublicConfig();
 
   return createBrowserClient(
     supabaseUrl,
