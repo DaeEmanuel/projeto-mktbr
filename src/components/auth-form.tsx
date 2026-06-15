@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/browser";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
-  const supabase = createClient();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,6 +17,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setLoading(true);
     setMessage("");
 
+    const supabase = createClient();
     const result =
       mode === "signup"
         ? await supabase.auth.signUp({
