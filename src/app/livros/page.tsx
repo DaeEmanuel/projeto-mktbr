@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BookCheckoutButton } from "@/components/book-checkout-button";
 import { Section } from "@/components/section";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -13,8 +12,10 @@ type Book = {
   id: string;
   title: string;
   description: string | null;
+  cover_url?: string | null;
   price_cents: number;
   slug: string;
+  short_slug?: string | null;
   users?: { name: string | null } | null;
 };
 
@@ -28,7 +29,7 @@ export default async function LivrosPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("books")
-    .select("id, title, description, price_cents, slug, users:writer_id(name)")
+    .select("id, title, description, cover_url, price_cents, slug, short_slug, users:writer_id(name)")
     .eq("published", true)
     .order("created_at", { ascending: false });
 
@@ -52,15 +53,26 @@ export default async function LivrosPage() {
           <div className="grid gap-4 md:grid-cols-3">
             {books.map((book) => (
               <article key={book.id} className="rounded-lg border border-slate-200 bg-white p-6">
+                {book.cover_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={book.cover_url}
+                    alt=""
+                    className="mb-5 aspect-[3/4] w-full rounded-md object-cover"
+                  />
+                ) : null}
                 <p className="text-xs font-black uppercase tracking-wide text-[#00c853]">
                   {book.users?.name || "Escritor MKTBR"}
                 </p>
                 <h2 className="mt-3 text-xl font-black">{book.title}</h2>
                 <p className="mt-3 text-sm leading-6 text-slate-600">{book.description}</p>
                 <p className="mt-5 text-2xl font-black">{formatCurrency(book.price_cents)}</p>
-                <div className="mt-5">
-                  <BookCheckoutButton bookId={book.id} />
-                </div>
+                <Link
+                  href={`/livros/${book.short_slug || book.slug}`}
+                  className="mt-5 inline-flex min-h-11 items-center rounded-md bg-[#061421] px-4 text-sm font-black text-white"
+                >
+                  Ver ebook
+                </Link>
               </article>
             ))}
           </div>

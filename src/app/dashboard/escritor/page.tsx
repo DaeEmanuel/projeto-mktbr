@@ -54,7 +54,7 @@ export default async function WriterDashboardPage() {
       .order("created_at", { ascending: false }),
     supabase
       .from("books")
-      .select("id, title, price_cents, published")
+      .select("id, title, price_cents, published, short_slug, slug")
       .eq("writer_id", user.id)
       .order("created_at", { ascending: false }),
   ]);
@@ -84,6 +84,9 @@ export default async function WriterDashboardPage() {
               Escritor
             </p>
             <h1 className="text-2xl font-black text-[#061421]">Painel do escritor</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Cadastro gratuito. Voce so paga taxa da plataforma quando vender uma obra.
+            </p>
           </div>
           <Link href="/dashboard" className="rounded-md bg-[#061421] px-4 py-2 text-sm font-bold text-white">
             Dashboard
@@ -110,8 +113,25 @@ export default async function WriterDashboardPage() {
                 <div key={book.id} className="rounded-md bg-slate-50 p-4">
                   <p className="font-black">{book.title}</p>
                   <p className="text-sm text-slate-600">
-                    {formatCurrency(book.price_cents)} - {book.published ? "Publicado" : "Rascunho"}
+                    {formatCurrency(book.price_cents)} - {book.published ? "Venda ativa" : "Venda inativa"}
                   </p>
+                  <p className="mt-1 text-xs font-bold text-[#128C3E]">
+                    {(book.short_slug || book.slug)}.mktbr.site
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link
+                      href={`/dashboard/escritor/livros/${book.id}`}
+                      className="rounded-md bg-white px-3 py-2 text-xs font-black text-[#061421] ring-1 ring-slate-200"
+                    >
+                      Editar
+                    </Link>
+                    <Link
+                      href={`/livros/${book.short_slug || book.slug}`}
+                      className="rounded-md bg-white px-3 py-2 text-xs font-black text-[#128C3E] ring-1 ring-slate-200"
+                    >
+                      Ver pagina publica
+                    </Link>
+                  </div>
                 </div>
               ))}
               {(booksData || []).length === 0 ? (
