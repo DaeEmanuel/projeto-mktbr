@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { VLibrasWidget } from "@/components/vlibras-widget";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -50,7 +51,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        {children}
+        <VLibrasWidget />
+      </body>
     </html>
   );
 }

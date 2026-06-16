@@ -36,3 +36,22 @@ button {
   background: #00c853;
   color: #061421;
 }
+
+.mktbr-vlibras [vw-access-button] {
+  bottom: 88px !important;
+  right: 16px !important;
+  z-index: 50 !important;
+}
+
+.mktbr-vlibras [vw-plugin-wrapper] {
+  z-index: 50 !important;
+}
+
+@media (max-width: 640px) {
+  .mktbr-vlibras [vw-access-button] {
+    bottom: 72px !important;
+    right: 12px !important;
+    transform: scale(0.88);
+    transform-origin: bottom right;
+  }
+}
