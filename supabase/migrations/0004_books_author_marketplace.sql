@@ -23,8 +23,8 @@ values (
   'book-assets',
   'book-assets',
   true,
-  104857600,
-  array['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm']
+  209715200,
+  array['image/jpeg', 'image/png', 'image/webp', 'video/mp4']
 )
 on conflict (id) do update set
   public = excluded.public,
@@ -36,7 +36,7 @@ values (
   'ebook-files',
   'ebook-files',
   false,
-  52428800,
+  104857600,
   array['application/pdf']
 )
 on conflict (id) do update set

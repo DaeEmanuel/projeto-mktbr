@@ -9,7 +9,11 @@ import {
 import { PLATFORM_COMMISSION_CENTS } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
-const videoTypes = new Set(["video/mp4", "video/webm"]);
+const MAX_PDF_SIZE = 100 * 1024 * 1024;
+const MAX_COVER_SIZE = 10 * 1024 * 1024;
+const MAX_VIDEO_SIZE = 200 * 1024 * 1024;
+
+const videoTypes = new Set(["video/mp4"]);
 const coverTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function fileExtension(file: File) {
@@ -120,6 +124,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "O ebook deve ser enviado em PDF." }, { status: 400 });
   }
 
+  if (ebookFile.size > MAX_PDF_SIZE) {
+    return NextResponse.json({ error: "O PDF deve ter ate 100 MB." }, { status: 400 });
+  }
+
   if (!/^[a-z0-9-]+$/.test(shortSlug)) {
     return NextResponse.json(
       { error: "A URL deve usar apenas letras minusculas, numeros e hifen." },
@@ -138,8 +146,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A capa deve ser JPG, PNG ou WebP." }, { status: 400 });
   }
 
+  if (coverFile && coverFile.size > MAX_COVER_SIZE) {
+    return NextResponse.json({ error: "A capa deve ter ate 10 MB." }, { status: 400 });
+  }
+
   if (videoFile && videoFile.size > 0 && !videoTypes.has(videoFile.type)) {
-    return NextResponse.json({ error: "O video deve ser MP4 ou WebM." }, { status: 400 });
+    return NextResponse.json({ error: "O video deve ser MP4." }, { status: 400 });
+  }
+
+  if (videoFile && videoFile.size > MAX_VIDEO_SIZE) {
+    return NextResponse.json({ error: "O video deve ter ate 200 MB." }, { status: 400 });
   }
 
   try {
@@ -244,12 +260,24 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "O ebook deve ser enviado em PDF." }, { status: 400 });
   }
 
+  if (ebookFile && ebookFile.size > MAX_PDF_SIZE) {
+    return NextResponse.json({ error: "O PDF deve ter ate 100 MB." }, { status: 400 });
+  }
+
   if (coverFile && coverFile.size > 0 && !coverTypes.has(coverFile.type)) {
     return NextResponse.json({ error: "A capa deve ser JPG, PNG ou WebP." }, { status: 400 });
   }
 
+  if (coverFile && coverFile.size > MAX_COVER_SIZE) {
+    return NextResponse.json({ error: "A capa deve ter ate 10 MB." }, { status: 400 });
+  }
+
   if (videoFile && videoFile.size > 0 && !videoTypes.has(videoFile.type)) {
-    return NextResponse.json({ error: "O video deve ser MP4 ou WebM." }, { status: 400 });
+    return NextResponse.json({ error: "O video deve ser MP4." }, { status: 400 });
+  }
+
+  if (videoFile && videoFile.size > MAX_VIDEO_SIZE) {
+    return NextResponse.json({ error: "O video deve ter ate 200 MB." }, { status: 400 });
   }
 
   try {

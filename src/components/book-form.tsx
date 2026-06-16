@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bold, Italic, List, SmilePlus } from "lucide-react";
+import { Bold, CheckCircle2, FileText, ImageIcon, Italic, List, SmilePlus, Video } from "lucide-react";
 import { calculateWriterNet, formatCurrency, PLATFORM_COMMISSION_CENTS } from "@/lib/money";
 
 type EditableBook = {
@@ -17,6 +17,38 @@ type EditableBook = {
   short_slug?: string | null;
   slug?: string | null;
 };
+
+type UploadKind = "pdf" | "cover" | "video";
+
+const uploadRules = {
+  pdf: {
+    accept: "application/pdf",
+    button: "Selecionar PDF",
+    empty: "PDF ate 100 MB",
+    error: "Envie um arquivo PDF de ate 100 MB.",
+    icon: FileText,
+    label: "Ebook em PDF",
+    maxSize: 100 * 1024 * 1024,
+  },
+  cover: {
+    accept: "image/png,image/jpeg,image/webp",
+    button: "Selecionar Imagem",
+    empty: "JPG, PNG ou WEBP ate 10 MB",
+    error: "A capa deve ser JPG, PNG ou WEBP e ter ate 10 MB.",
+    icon: ImageIcon,
+    label: "Capa do livro",
+    maxSize: 10 * 1024 * 1024,
+  },
+  video: {
+    accept: "video/mp4",
+    button: "Selecionar Video",
+    empty: "MP4 ate 200 MB e 5 minutos",
+    error: "O video deve ser MP4, ter ate 200 MB e no maximo 5 minutos.",
+    icon: Video,
+    label: "Video de apresentacao",
+    maxSize: 200 * 1024 * 1024,
+  },
+} as const;
 
 function normalizeSlug(value: string) {
   return value
@@ -36,6 +68,85 @@ function parsePrice(value: string) {
   return Math.round(Number(value.replace(",", ".") || 0) * 100);
 }
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1).replace(".", ",")} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace(".", ",")} MB`;
+}
+
+function validateFileType(file: File, kind: UploadKind) {
+  if (kind === "pdf") {
+    return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  }
+
+  if (kind === "cover") {
+    return ["image/jpeg", "image/png", "image/webp"].includes(file.type);
+  }
+
+  return file.type === "video/mp4" || file.name.toLowerCase().endsWith(".mp4");
+}
+
+function UploadField({
+  file,
+  inputName,
+  kind,
+  onChange,
+  required,
+}: {
+  file: File | null;
+  inputName: string;
+  kind: UploadKind;
+  onChange: (file: File | null) => void;
+  required?: boolean;
+}) {
+  const inputId = `${inputName}-input`;
+  const rules = uploadRules[kind];
+  const Icon = rules.icon;
+
+  return (
+    <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-md bg-white text-[#128C3E] ring-1 ring-slate-200">
+          <Icon size={20} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-black text-slate-700">{rules.label}</p>
+          <p className="mt-1 min-h-5 truncate text-xs font-semibold text-slate-500">
+            {file ? (
+              <span className="inline-flex max-w-full items-center gap-1 text-[#128C3E]">
+                <CheckCircle2 size={14} className="shrink-0" />
+                <span className="truncate">
+                  {file.name} ({formatFileSize(file.size)})
+                </span>
+              </span>
+            ) : (
+              rules.empty
+            )}
+          </p>
+        </div>
+      </div>
+
+      <input
+        id={inputId}
+        required={required}
+        name={inputName}
+        type="file"
+        accept={rules.accept}
+        className="sr-only"
+        onChange={(event) => onChange(event.target.files?.[0] || null)}
+      />
+      <label
+        htmlFor={inputId}
+        className="mt-4 inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-md bg-white px-4 text-center text-sm font-black text-[#061421] ring-1 ring-slate-200 transition hover:ring-[#00c853]"
+      >
+        {rules.button}
+      </label>
+    </div>
+  );
+}
+
 export function BookForm({ book }: { book?: EditableBook }) {
   const router = useRouter();
   const synopsisRef = useRef<HTMLDivElement>(null);
@@ -50,6 +161,9 @@ export function BookForm({ book }: { book?: EditableBook }) {
   const [slugMessage, setSlugMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [slugEdited, setSlugEdited] = useState(Boolean(book?.short_slug || book?.slug));
+  const [ebookFile, setEbookFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   const priceCents = parsePrice(priceReais);
   const showNet = priceCents > 0;
@@ -109,17 +223,42 @@ export function BookForm({ book }: { book?: EditableBook }) {
     });
   }
 
+  async function validateUploads() {
+    const uploads: Array<[File | null, UploadKind]> = [
+      [ebookFile, "pdf"],
+      [coverFile, "cover"],
+      [videoFile, "video"],
+    ];
+
+    if (!book?.id && !ebookFile) {
+      setMessage("Envie o ebook em PDF.");
+      return false;
+    }
+
+    for (const [file, kind] of uploads) {
+      if (!file) {
+        continue;
+      }
+
+      if (!validateFileType(file, kind) || file.size > uploadRules[kind].maxSize) {
+        setMessage(uploadRules[kind].error);
+        return false;
+      }
+    }
+
+    return validateVideo(videoFile);
+  }
+
   async function saveBook(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setMessage("");
 
     const form = event.currentTarget;
-    const videoFile = (form.elements.namedItem("videoFile") as HTMLInputElement).files?.[0] || null;
-    const validVideo = await validateVideo(videoFile);
+    const validUploads = await validateUploads();
     const availableSlug = await checkSlug();
 
-    if (!validVideo || !availableSlug) {
+    if (!validUploads || !availableSlug) {
       setLoading(false);
       return;
     }
@@ -157,6 +296,9 @@ export function BookForm({ book }: { book?: EditableBook }) {
       setShortSlug("");
       setPublished(false);
       setSlugEdited(false);
+      setEbookFile(null);
+      setCoverFile(null);
+      setVideoFile(null);
       if (synopsisRef.current) {
         synopsisRef.current.innerHTML = "";
       }
@@ -294,36 +436,26 @@ export function BookForm({ book }: { book?: EditableBook }) {
         ) : null}
       </label>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <label className="grid gap-2 text-sm font-bold text-slate-700">
-          Ebook em PDF
-          <input
-            required={!book?.id}
-            name="ebookFile"
-            type="file"
-            accept="application/pdf"
-            className="rounded-md border border-slate-200 p-3 text-sm"
-          />
-        </label>
-        <label className="grid gap-2 text-sm font-bold text-slate-700">
-          Capa do livro
-          <input
-            name="coverFile"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            className="rounded-md border border-slate-200 p-3 text-sm"
-          />
-        </label>
-        <label className="grid gap-2 text-sm font-bold text-slate-700">
-          Video de apresentacao
-          <input
-            name="videoFile"
-            type="file"
-            accept="video/mp4,video/webm"
-            className="rounded-md border border-slate-200 p-3 text-sm"
-          />
-          <span className="text-xs font-semibold text-slate-500">Maximo de 5 minutos.</span>
-        </label>
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <UploadField
+          file={ebookFile}
+          inputName="ebookFile"
+          kind="pdf"
+          onChange={setEbookFile}
+          required={!book?.id}
+        />
+        <UploadField
+          file={coverFile}
+          inputName="coverFile"
+          kind="cover"
+          onChange={setCoverFile}
+        />
+        <UploadField
+          file={videoFile}
+          inputName="videoFile"
+          kind="video"
+          onChange={setVideoFile}
+        />
       </div>
 
       <label className="flex items-center gap-3 text-sm font-bold text-slate-700">
