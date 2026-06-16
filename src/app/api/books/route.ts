@@ -12,9 +12,28 @@ import { createClient } from "@/lib/supabase/server";
 const MAX_PDF_SIZE = 100 * 1024 * 1024;
 const MAX_COVER_SIZE = 10 * 1024 * 1024;
 const MAX_VIDEO_SIZE = 200 * 1024 * 1024;
+const UPLOAD_TIMEOUT_MS = 90_000;
 
 const videoTypes = new Set(["video/mp4"]);
 const coverTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+class BookUploadError extends Error {
+  constructor(
+    message: string,
+    public readonly publicMessage: string,
+  ) {
+    super(message);
+  }
+}
+
+function timeout<T>(promise: Promise<T>, message: string) {
+  return Promise.race<T>([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), UPLOAD_TIMEOUT_MS);
+    }),
+  ]);
+}
 
 function fileExtension(file: File) {
   const fromName = file.name.split(".").pop();
@@ -27,11 +46,13 @@ function fileExtension(file: File) {
 
 async function uploadOptionalFile({
   bucket,
+  errorMessage,
   file,
   userId,
   prefix,
 }: {
   bucket: "book-assets" | "ebook-files";
+  errorMessage: string;
   file: File | null;
   userId: string;
   prefix: string;
@@ -42,14 +63,28 @@ async function uploadOptionalFile({
 
   const supabase = await createClient();
   const path = `${userId}/${prefix}-${crypto.randomUUID()}.${fileExtension(file)}`;
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: "31536000",
-    upsert: false,
+  console.info("[MKTBR Books API] Iniciando upload", {
+    bucket,
+    path,
+    prefix,
+    size: file.size,
+    type: file.type,
   });
 
+  const { error } = await timeout(
+    supabase.storage.from(bucket).upload(path, file, {
+      cacheControl: "31536000",
+      upsert: false,
+    }),
+    `Timeout no upload ${prefix}`,
+  );
+
   if (error) {
-    throw new Error(error.message);
+    console.error("[MKTBR Books API] Erro no upload", { bucket, path, error });
+    throw new BookUploadError(error.message, errorMessage);
   }
+
+  console.info("[MKTBR Books API] Upload concluido", { bucket, path });
 
   if (bucket === "book-assets") {
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
@@ -91,6 +126,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  console.info("[MKTBR Books API] POST /api/books iniciado");
   const supabase = await createClient();
   const {
     data: { user },
@@ -160,11 +196,30 @@ export async function POST(request: Request) {
 
   try {
     const [ebookUpload, coverUpload, videoUpload] = await Promise.all([
-      uploadOptionalFile({ bucket: "ebook-files", file: ebookFile, userId: user.id, prefix: "ebook" }),
-      uploadOptionalFile({ bucket: "book-assets", file: coverFile, userId: user.id, prefix: "cover" }),
-      uploadOptionalFile({ bucket: "book-assets", file: videoFile, userId: user.id, prefix: "video" }),
+      uploadOptionalFile({
+        bucket: "ebook-files",
+        errorMessage: "Erro ao enviar PDF.",
+        file: ebookFile,
+        userId: user.id,
+        prefix: "ebook",
+      }),
+      uploadOptionalFile({
+        bucket: "book-assets",
+        errorMessage: "Erro ao enviar capa.",
+        file: coverFile,
+        userId: user.id,
+        prefix: "cover",
+      }),
+      uploadOptionalFile({
+        bucket: "book-assets",
+        errorMessage: "Erro ao enviar video.",
+        file: videoFile,
+        userId: user.id,
+        prefix: "video",
+      }),
     ]);
 
+    console.info("[MKTBR Books API] Inserindo livro no banco");
     const { data, error } = await supabase
       .from("books")
       .insert({
@@ -188,22 +243,33 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[MKTBR Books API] Erro ao inserir livro no banco", error);
+      return NextResponse.json({ error: "Erro de conexao com banco." }, { status: 500 });
     }
 
+    console.info("[MKTBR Books API] Livro salvo com sucesso", { id: data.id });
     return NextResponse.json({
       book: data,
       platformFeeCents: PLATFORM_COMMISSION_CENTS,
     });
   } catch (error) {
+    console.error("[MKTBR Books API] Falha no POST /api/books", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Nao foi possivel salvar o livro." },
+      {
+        error:
+          error instanceof BookUploadError
+            ? error.publicMessage
+            : error instanceof Error && error.message.includes("Timeout")
+              ? "Tempo limite de upload atingido. Tente novamente."
+              : "Erro de conexao com banco.",
+      },
       { status: 500 },
     );
   }
 }
 
 export async function PATCH(request: Request) {
+  console.info("[MKTBR Books API] PATCH /api/books iniciado");
   const supabase = await createClient();
   const {
     data: { user },
@@ -282,9 +348,27 @@ export async function PATCH(request: Request) {
 
   try {
     const [ebookUpload, coverUpload, videoUpload] = await Promise.all([
-      uploadOptionalFile({ bucket: "ebook-files", file: ebookFile, userId: user.id, prefix: "ebook" }),
-      uploadOptionalFile({ bucket: "book-assets", file: coverFile, userId: user.id, prefix: "cover" }),
-      uploadOptionalFile({ bucket: "book-assets", file: videoFile, userId: user.id, prefix: "video" }),
+      uploadOptionalFile({
+        bucket: "ebook-files",
+        errorMessage: "Erro ao enviar PDF.",
+        file: ebookFile,
+        userId: user.id,
+        prefix: "ebook",
+      }),
+      uploadOptionalFile({
+        bucket: "book-assets",
+        errorMessage: "Erro ao enviar capa.",
+        file: coverFile,
+        userId: user.id,
+        prefix: "cover",
+      }),
+      uploadOptionalFile({
+        bucket: "book-assets",
+        errorMessage: "Erro ao enviar video.",
+        file: videoFile,
+        userId: user.id,
+        prefix: "video",
+      }),
     ]);
 
     const update: Record<string, string | number | boolean | null> = {
@@ -312,6 +396,7 @@ export async function PATCH(request: Request) {
       update.video_file_path = videoUpload.path;
     }
 
+    console.info("[MKTBR Books API] Atualizando livro no banco", { bookId });
     const { data, error } = await supabase
       .from("books")
       .update(update)
@@ -321,13 +406,23 @@ export async function PATCH(request: Request) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("[MKTBR Books API] Erro ao atualizar livro no banco", error);
+      return NextResponse.json({ error: "Erro de conexao com banco." }, { status: 500 });
     }
 
+    console.info("[MKTBR Books API] Livro atualizado com sucesso", { id: data.id });
     return NextResponse.json({ book: data });
   } catch (error) {
+    console.error("[MKTBR Books API] Falha no PATCH /api/books", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Nao foi possivel salvar o livro." },
+      {
+        error:
+          error instanceof BookUploadError
+            ? error.publicMessage
+            : error instanceof Error && error.message.includes("Timeout")
+              ? "Tempo limite de upload atingido. Tente novamente."
+              : "Erro de conexao com banco.",
+      },
       { status: 500 },
     );
   }

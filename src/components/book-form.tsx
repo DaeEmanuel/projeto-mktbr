@@ -20,6 +20,9 @@ type EditableBook = {
 
 type UploadKind = "pdf" | "cover" | "video";
 
+const BOOK_SAVE_TIMEOUT_MS = 120_000;
+const VIDEO_METADATA_TIMEOUT_MS = 10_000;
+
 const uploadRules = {
   pdf: {
     accept: "application/pdf",
@@ -204,8 +207,20 @@ export function BookForm({ book }: { book?: EditableBook }) {
     return new Promise<boolean>((resolve) => {
       const video = document.createElement("video");
       const url = URL.createObjectURL(file);
+      const timeout = window.setTimeout(() => {
+        URL.revokeObjectURL(url);
+        setMessage("Nao foi possivel validar a duracao do video. Tente outro arquivo MP4.");
+        console.error("[MKTBR Books] Timeout ao validar metadata do video", {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        });
+        resolve(false);
+      }, VIDEO_METADATA_TIMEOUT_MS);
+
       video.preload = "metadata";
       video.onloadedmetadata = () => {
+        window.clearTimeout(timeout);
         URL.revokeObjectURL(url);
         if (video.duration > 300) {
           setMessage("O video de apresentacao deve ter no maximo 5 minutos.");
@@ -215,8 +230,14 @@ export function BookForm({ book }: { book?: EditableBook }) {
         resolve(true);
       };
       video.onerror = () => {
+        window.clearTimeout(timeout);
         URL.revokeObjectURL(url);
         setMessage("Nao foi possivel validar a duracao do video.");
+        console.error("[MKTBR Books] Erro ao validar metadata do video", {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        });
         resolve(false);
       };
       video.src = url;
@@ -251,57 +272,90 @@ export function BookForm({ book }: { book?: EditableBook }) {
 
   async function saveBook(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setLoading(true);
     setMessage("");
 
-    const form = event.currentTarget;
-    const validUploads = await validateUploads();
-    const availableSlug = await checkSlug();
+    try {
+      console.info("[MKTBR Books] Iniciando salvamento do ebook", {
+        mode: book?.id ? "edit" : "create",
+        hasPdf: Boolean(ebookFile),
+        hasCover: Boolean(coverFile),
+        hasVideo: Boolean(videoFile),
+      });
 
-    if (!validUploads || !availableSlug) {
-      setLoading(false);
-      return;
-    }
+      const validUploads = await validateUploads();
+      console.info("[MKTBR Books] Validacao local de uploads concluida", { validUploads });
 
-    const formData = new FormData(form);
-    formData.set("synopsisHtml", synopsisRef.current?.innerHTML || "");
-    formData.set("shortSlug", normalizeSlug(shortSlug));
-    formData.set("published", String(published));
-    if (book?.id) {
-      formData.set("bookId", book.id);
-    }
+      const availableSlug = await checkSlug();
+      console.info("[MKTBR Books] Validacao de URL concluida", { availableSlug, shortSlug });
 
-    const response = await fetch("/api/books", {
-      method: book?.id ? "PATCH" : "POST",
-      body: formData,
-    });
-
-    const data = await response.json();
-    setLoading(false);
-
-    if (!response.ok) {
-      setMessage(data.error || "Nao foi possivel salvar o ebook.");
-      return;
-    }
-
-    setMessage(book?.id ? "Ebook atualizado com sucesso." : "Ebook cadastrado com sucesso.");
-    router.refresh();
-    if (!book?.id) {
-      form.reset();
-      setTitle("");
-      setDescription("");
-      setPriceReais("");
-      setAuthorName("");
-      setCategory("");
-      setShortSlug("");
-      setPublished(false);
-      setSlugEdited(false);
-      setEbookFile(null);
-      setCoverFile(null);
-      setVideoFile(null);
-      if (synopsisRef.current) {
-        synopsisRef.current.innerHTML = "";
+      if (!validUploads || !availableSlug) {
+        return;
       }
+
+      const formData = new FormData(form);
+      formData.set("synopsisHtml", synopsisRef.current?.innerHTML || "");
+      formData.set("shortSlug", normalizeSlug(shortSlug));
+      formData.set("published", String(published));
+      if (book?.id) {
+        formData.set("bookId", book.id);
+      }
+
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => {
+        controller.abort();
+      }, BOOK_SAVE_TIMEOUT_MS);
+
+      console.info("[MKTBR Books] Enviando requisicao para /api/books");
+      const response = await fetch("/api/books", {
+        method: book?.id ? "PATCH" : "POST",
+        body: formData,
+        signal: controller.signal,
+      });
+      window.clearTimeout(timeout);
+
+      const data = await response.json().catch(() => ({}));
+      console.info("[MKTBR Books] Resposta recebida de /api/books", {
+        ok: response.ok,
+        status: response.status,
+        error: data.error,
+      });
+
+      if (!response.ok) {
+        setMessage(data.error || "Nao foi possivel salvar o ebook.");
+        return;
+      }
+
+      setMessage(book?.id ? "Livro publicado com sucesso." : "Livro publicado com sucesso.");
+      router.refresh();
+      if (!book?.id) {
+        form.reset();
+        setTitle("");
+        setDescription("");
+        setPriceReais("");
+        setAuthorName("");
+        setCategory("");
+        setShortSlug("");
+        setPublished(false);
+        setSlugEdited(false);
+        setEbookFile(null);
+        setCoverFile(null);
+        setVideoFile(null);
+        if (synopsisRef.current) {
+          synopsisRef.current.innerHTML = "";
+        }
+      }
+    } catch (error) {
+      console.error("[MKTBR Books] Falha no salvamento do ebook", error);
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setMessage("Tempo limite de upload atingido. Verifique sua conexao e tente novamente.");
+        return;
+      }
+
+      setMessage("Erro de conexao com banco. Tente novamente em instantes.");
+    } finally {
+      setLoading(false);
     }
   }
 
