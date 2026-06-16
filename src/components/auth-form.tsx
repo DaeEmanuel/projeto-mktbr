@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getAppUrl } from "@/lib/app-url";
+import { translateAuthMessage } from "@/lib/auth-messages";
 import { createClient } from "@/lib/supabase/browser";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
@@ -23,18 +26,28 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         ? await supabase.auth.signUp({
             email,
             password,
-            options: { data: { name } },
+            options: {
+              data: { name },
+              emailRedirectTo: `${getAppUrl()}/auth/callback?next=/dashboard`,
+            },
           })
         : await supabase.auth.signInWithPassword({ email, password });
 
     setLoading(false);
 
     if (result.error) {
-      setMessage(result.error.message);
+      setMessage(translateAuthMessage(result.error.message));
       return;
     }
 
-    router.push("/dashboard");
+    if (mode === "signup") {
+      router.push("/boas-vindas");
+      router.refresh();
+      return;
+    }
+
+    const redirectTo = new URLSearchParams(window.location.search).get("redirect");
+    router.push(redirectTo || "/dashboard");
     router.refresh();
   }
 
@@ -83,6 +96,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           placeholder="Minimo 8 caracteres"
         />
       </label>
+      {mode === "login" ? (
+        <Link href="/recuperar-senha" className="-mt-2 text-sm font-black text-[#128C3E]">
+          Esqueci minha senha
+        </Link>
+      ) : null}
       <button
         type="submit"
         disabled={loading}
