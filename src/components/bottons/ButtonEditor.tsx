@@ -1,30 +1,93 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Download, Loader2, Save, Sparkles, Trash2 } from "lucide-react";
-import type { ButtonConfig, ButtonProject } from "@/lib/bottons";
+import { Copy, Download, Loader2, Save, Sparkles, Trash2, Upload } from "lucide-react";
+import type { ButtonConfig, ButtonGloss, ButtonImageFit, ButtonProject, PixKeyType } from "@/lib/bottons";
 import { buttonCategories, defaultButtonConfig, mergeButtonConfig } from "@/lib/bottons";
 import { ButtonA4Generator } from "./ButtonA4Generator";
 import { ButtonMockup } from "./ButtonMockup";
 import { ButtonPreview } from "./ButtonPreview";
 import { ButtonTemplates } from "./ButtonTemplates";
 
-const fonts = [
-  "Inter, Arial, sans-serif",
-  "Arial Black, Arial, sans-serif",
-  "Georgia, serif",
-  "Verdana, sans-serif",
+const fonts = ["Inter, Arial, sans-serif", "Arial Black, Arial, sans-serif", "Georgia, serif", "Verdana, sans-serif"];
+const glossOptions: Array<{ value: ButtonGloss; label: string }> = [
+  { value: "none", label: "Sem brilho" },
+  { value: "light", label: "Brilho leve" },
+  { value: "normal", label: "Brilho normal" },
+  { value: "strong", label: "Brilho forte" },
+  { value: "premium", label: "Brilho premium" },
+  { value: "glass", label: "Efeito vidro" },
+  { value: "metallic", label: "Efeito metálico" },
 ];
+
+function crc16(payload: string) {
+  let crc = 0xffff;
+  for (let index = 0; index < payload.length; index += 1) {
+    crc ^= payload.charCodeAt(index) << 8;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
+      crc &= 0xffff;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+}
+
+function emv(id: string, value: string) {
+  return `${id}${value.length.toString().padStart(2, "0")}${value}`;
+}
+
+function sanitizePixText(value: string, max: number) {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9 .@+\-_]/g, "").slice(0, max).trim();
+}
+
+function buildPixPayload(config: ButtonConfig) {
+  const key = config.pixKey.trim();
+  const receiver = sanitizePixText(config.pixReceiverName, 25).toUpperCase();
+  const city = sanitizePixText(config.pixCity || "SAO PAULO", 15).toUpperCase();
+  const txid = sanitizePixText(config.pixTransactionId || "MKTBR", 25) || "MKTBR";
+  const amount = config.pixAmount.trim().replace(",", ".");
+  const description = sanitizePixText(config.pixDescription, 60);
+
+  if (!key || !receiver || !city) return "";
+
+  const merchantAccount = emv("00", "br.gov.bcb.pix") + emv("01", key) + (description ? emv("02", description) : "");
+  const payloadWithoutCrc =
+    emv("00", "01") +
+    emv("26", merchantAccount) +
+    emv("52", "0000") +
+    emv("53", "986") +
+    (amount && Number(amount) > 0 ? emv("54", Number(amount).toFixed(2)) : "") +
+    emv("58", "BR") +
+    emv("59", receiver) +
+    emv("60", city) +
+    emv("62", emv("05", txid)) +
+    "6304";
+
+  return `${payloadWithoutCrc}${crc16(payloadWithoutCrc)}`;
+}
+
+function buildQrValue(config: ButtonConfig) {
+  if (config.qrType === "whatsapp") {
+    const phone = config.whatsappNumber.replace(/\D/g, "");
+    const message = encodeURIComponent(config.whatsappMessage || "Olá!");
+    return phone ? `https://wa.me/${phone}?text=${message}` : "";
+  }
+  if (config.qrType === "pix") return buildPixPayload(config);
+  if (config.qrType === "text") return config.freeText;
+  return config.qrCodeText;
+}
 
 function buildPreviewSvg(config: ButtonConfig) {
   const radius = config.shape === "circle" ? 160 : config.shape === "rounded" ? 30 : 10;
-  const qr = config.showQrCode
-    ? `<rect x="236" y="236" width="56" height="56" rx="8" fill="#fff"/><text x="264" y="269" text-anchor="middle" font-size="10" font-weight="800" fill="#061421">QR</text>`
+  const image = config.mainImageDataUrl
+    ? `<image href="${config.mainImageDataUrl}" x="${70 + config.imageX}" y="${50 + config.imageY}" width="${config.imageScale * 1.8}" height="${config.imageScale * 1.8}" preserveAspectRatio="xMidYMid ${config.imageFit === "cover" ? "slice" : "meet"}" transform="rotate(${config.imageRotation} 160 160)" opacity=".96"/>`
     : "";
+  const qr = config.showQrCode ? `<rect x="${(config.qrX / 100) * 320 - config.qrSize / 2}" y="${(config.qrY / 100) * 320 - config.qrSize / 2}" width="${config.qrSize}" height="${config.qrSize}" rx="8" fill="#fff"/><text x="${(config.qrX / 100) * 320}" y="${(config.qrY / 100) * 320 + 4}" text-anchor="middle" font-size="10" font-weight="800" fill="#061421">QR</text>` : "";
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="960" viewBox="0 0 320 320">
     <rect width="320" height="320" rx="${radius}" fill="${config.backgroundColor}"/>
     <circle cx="80" cy="70" r="80" fill="${config.accentColor}" opacity="0.28"/>
+    ${image}
     <rect x="16" y="16" width="288" height="288" rx="${radius}" fill="none" stroke="rgba(255,255,255,.45)"/>
     <text x="160" y="118" text-anchor="middle" font-family="Arial" font-size="14" font-weight="800" fill="${config.textColor}" opacity="0.82">${config.subtitle}</text>
     <text x="160" y="165" text-anchor="middle" font-family="Arial" font-size="42" font-weight="900" fill="${config.textColor}">${config.title}</text>
@@ -42,34 +105,23 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-async function svgToPng(svg: string, filename: string) {
+async function svgToPng(svg: string, filename: string, scale = 1) {
   const image = new Image();
   const svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(svgBlob);
-
   await new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
     image.onerror = () => reject(new Error("Erro ao gerar imagem PNG."));
     image.src = url;
   });
-
   const canvas = document.createElement("canvas");
-  canvas.width = 960;
-  canvas.height = 960;
+  canvas.width = 960 * scale;
+  canvas.height = 960 * scale;
   const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("Canvas nao suportado neste navegador.");
-  }
-  context.drawImage(image, 0, 0, 960, 960);
+  if (!context) throw new Error("Canvas não suportado neste navegador.");
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
   URL.revokeObjectURL(url);
-
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((pngBlob) => {
-      if (pngBlob) resolve(pngBlob);
-      else reject(new Error("Nao foi possivel exportar PNG."));
-    }, "image/png");
-  });
-
+  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((pngBlob) => pngBlob ? resolve(pngBlob) : reject(new Error("Não foi possível exportar PNG.")), "image/png"));
   downloadBlob(blob, filename);
 }
 
@@ -86,64 +138,67 @@ export function ButtonEditor() {
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [showMobilePreview, setShowMobilePreview] = useState(true);
 
-  const previewData = useMemo(() => makePreviewData(config), [config]);
+  const qrValue = useMemo(() => buildQrValue(config), [config]);
+  const pixPayload = useMemo(() => buildPixPayload(config), [config]);
+  const previewConfig = useMemo(() => ({ ...config, qrCodeText: qrValue }), [config, qrValue]);
+  const previewData = useMemo(() => makePreviewData(previewConfig), [previewConfig]);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
+  useEffect(() => { fetchProjects(); }, []);
 
   async function fetchProjects() {
     const response = await fetch("/api/button-projects");
     const data = await response.json().catch(() => ({}));
-    if (response.ok) {
-      setProjects(data.projects || []);
-    }
+    if (response.ok) setProjects(data.projects || []);
   }
 
   function updateConfig<K extends keyof ButtonConfig>(key: K, value: ButtonConfig[K]) {
     setConfig((current) => ({ ...current, [key]: value }));
   }
 
-  async function saveProject() {
-    setError("");
-    setMessage("");
-    setIsSaving(true);
+  function setQrPosition(x: number, y: number) {
+    setConfig((current) => ({ ...current, qrX: Math.round(x), qrY: Math.round(y) }));
+  }
 
+  async function handleImageUpload(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Envie uma imagem válida.");
+      return;
+    }
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("Erro ao ler imagem."));
+      reader.readAsDataURL(file);
+    });
+    setConfig((current) => ({ ...current, mainImageDataUrl: dataUrl }));
+  }
+
+  async function saveProject() {
+    setError(""); setMessage(""); setIsSaving(true);
     try {
       const response = await fetch(currentProjectId ? `/api/button-projects/${currentProjectId}` : "/api/button-projects", {
         method: currentProjectId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome_projeto: projectName, configuracao_json: config, imagem_preview: previewData }),
+        body: JSON.stringify({ nome_projeto: projectName, configuracao_json: previewConfig, imagem_preview: previewData }),
       });
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Nao foi possivel salvar o projeto.");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Não foi possível salvar o projeto.");
       setCurrentProjectId(data.project.id);
       setMessage("Projeto salvo com sucesso.");
       await fetchProjects();
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Erro ao salvar projeto.");
-    } finally {
-      setIsSaving(false);
-    }
+    } finally { setIsSaving(false); }
   }
 
   async function duplicateProject() {
-    if (!currentProjectId) {
-      setError("Salve ou selecione um projeto antes de duplicar.");
-      return;
-    }
-
+    if (!currentProjectId) { setError("Salve ou selecione um projeto antes de duplicar."); return; }
     const response = await fetch(`/api/button-projects/${currentProjectId}/duplicate`, { method: "POST" });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setError(data.error || "Nao foi possivel duplicar o projeto.");
-      return;
-    }
+    if (!response.ok) { setError(data.error || "Não foi possível duplicar o projeto."); return; }
     setCurrentProjectId(data.project.id);
     setProjectName(data.project.nome_projeto);
     setConfig(mergeButtonConfig(data.project.configuracao_json));
@@ -152,225 +207,114 @@ export function ButtonEditor() {
   }
 
   async function deleteProject() {
-    if (!currentProjectId) {
-      setError("Selecione um projeto para excluir.");
-      return;
-    }
-
+    if (!currentProjectId) { setError("Selecione um projeto para excluir."); return; }
     const response = await fetch(`/api/button-projects/${currentProjectId}`, { method: "DELETE" });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      setError(data.error || "Nao foi possivel excluir o projeto.");
-      return;
-    }
-    setCurrentProjectId(null);
-    setProjectName("Meu projeto de botton");
-    setConfig(defaultButtonConfig);
-    setMessage("Projeto excluido.");
-    await fetchProjects();
+    if (!response.ok) { const data = await response.json().catch(() => ({})); setError(data.error || "Não foi possível excluir o projeto."); return; }
+    setCurrentProjectId(null); setProjectName("Meu projeto de botton"); setConfig(defaultButtonConfig); setMessage("Projeto excluído."); await fetchProjects();
   }
 
   function loadProject(project: ButtonProject) {
     setCurrentProjectId(project.id);
     setProjectName(project.nome_projeto);
     setConfig(mergeButtonConfig(project.configuracao_json));
-    setMessage("Projeto carregado para edicao.");
-    setError("");
+    setMessage("Projeto carregado para edição."); setError("");
   }
 
-  async function exportPng() {
-    await svgToPng(buildPreviewSvg(config), `${projectName || "botton-mktbr"}.png`);
-    if (currentProjectId) {
-      await fetch(`/api/button-projects/${currentProjectId}/download`, { method: "POST" });
-    }
+  async function exportPng(ultra = false) {
+    await svgToPng(buildPreviewSvg(previewConfig), `${projectName || "botton-mktbr"}${ultra ? "-ultra-hd" : ""}.png`, ultra ? 2 : 1);
+    if (currentProjectId) await fetch(`/api/button-projects/${currentProjectId}/download`, { method: "POST" });
   }
 
   async function exportA4() {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="2480" height="3508" viewBox="0 0 2480 3508"><rect width="2480" height="3508" fill="white"/>${Array.from({ length: 12 })
-      .map((_, index) => {
-        const col = index % 3;
-        const row = Math.floor(index / 3);
-        const x = 160 + col * 760;
-        const y = 160 + row * 760;
-        return `<g transform="translate(${x} ${y}) scale(1.8)">${buildPreviewSvg(config).replace(/<\/?svg[^>]*>/g, "")}</g>`;
-      })
-      .join("")}</svg>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="2480" height="3508" viewBox="0 0 2480 3508"><rect width="2480" height="3508" fill="white"/>${Array.from({ length: 12 }).map((_, index) => `<g transform="translate(${160 + (index % 3) * 760} ${160 + Math.floor(index / 3) * 760}) scale(1.8)">${buildPreviewSvg(previewConfig).replace(/<\/?svg[^>]*>/g, "")}</g>`).join("")}</svg>`;
     await svgToPng(svg, `${projectName || "folha-a4-bottons"}-a4.png`);
-    if (currentProjectId) {
-      await fetch(`/api/button-projects/${currentProjectId}/download`, { method: "POST" });
-    }
+    if (currentProjectId) await fetch(`/api/button-projects/${currentProjectId}/download`, { method: "POST" });
   }
 
   async function generateWithAi() {
-    setIsGeneratingAi(true);
-    setError("");
-    setMessage("");
-
+    setIsGeneratingAi(true); setError(""); setMessage("");
     try {
-      const response = await fetch("/api/openai/gerar-botton", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ config, projectName }),
-      });
+      const response = await fetch("/api/openai/gerar-botton", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ config, projectName }) });
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Nao foi possivel gerar arte com IA.");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Não foi possível gerar arte com IA.");
       setConfig((current) => {
         const palette = Array.isArray(data.paleta_cores) ? data.paleta_cores : [];
-
-        return {
-          ...current,
-          title: data.texto_botton || current.title,
-          slogan: data.slogan || current.slogan,
-          subtitle: data.descricao_arte || current.subtitle,
-          qrCodeText: data.qr_code || current.qrCodeText,
-          layout: ["central", "badge", "ribbon"].includes(data.layout) ? data.layout : current.layout,
-          backgroundColor: palette[0] || current.backgroundColor,
-          textColor: palette[1] || current.textColor,
-          accentColor: palette[2] || current.accentColor,
-          showQrCode: true,
-        };
+        return { ...current, title: data.texto_botton || current.title, slogan: data.slogan || current.slogan, subtitle: data.descricao_arte || current.subtitle, qrCodeText: data.qr_code || current.qrCodeText, layout: ["central", "badge", "ribbon"].includes(data.layout) ? data.layout : current.layout, backgroundColor: palette[0] || current.backgroundColor, textColor: palette[1] || current.textColor, accentColor: palette[2] || current.accentColor, showQrCode: true };
       });
-      setMessage(data.sugestoes_layout || "Sugestoes de IA aplicadas ao botton.");
-    } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "Erro ao gerar arte com IA.");
-    } finally {
-      setIsGeneratingAi(false);
-    }
+      setMessage(data.sugestoes_layout || "Sugestões de IA aplicadas ao botton.");
+    } catch (caughtError) { setError(caughtError instanceof Error ? caughtError.message : "Erro ao gerar arte com IA."); }
+    finally { setIsGeneratingAi(false); }
   }
 
+  async function copyPix() {
+    if (!pixPayload) { setError("Preencha chave Pix, nome do recebedor e cidade antes de copiar."); return; }
+    await navigator.clipboard.writeText(pixPayload);
+    setMessage("Pix Copia e Cola copiado.");
+  }
+
+  const preview = (
+    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-4">
+        <div><p className="text-xs font-black uppercase text-[#128C3E]">Prévia fixa</p><h2 className="text-xl font-black text-[#061421]">Arte do botton</h2></div>
+        <button type="button" onClick={() => setShowMobilePreview(false)} className="text-sm font-black text-slate-500 lg:hidden">Fechar</button>
+      </div>
+      <div className="mt-5"><ButtonPreview config={previewConfig} onQrMove={(position) => setQrPosition(position.x, position.y)} /></div>
+      <p className="mt-4 text-xs font-bold text-slate-500">O nome do projeto não entra na arte. Ele serve apenas para organizar seus projetos salvos.</p>
+    </div>
+  );
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-      <aside className="grid gap-5">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <section className="grid max-h-none gap-5 xl:max-h-[calc(100vh-130px)] xl:overflow-y-auto xl:pr-2">
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-xs font-black uppercase text-[#128C3E]">Editor</p>
           <h2 className="text-xl font-black text-[#061421]">Gerador Profissional de Bottons</h2>
           <div className="mt-5 grid gap-4">
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Nome do projeto
-              <input value={projectName} onChange={(event) => setProjectName(event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]" />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Texto principal
-              <input value={config.title} onChange={(event) => updateConfig("title", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]" />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Subtítulo
-              <input value={config.subtitle} onChange={(event) => updateConfig("subtitle", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]" />
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Slogan
-              <input value={config.slogan} onChange={(event) => updateConfig("slogan", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]" />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="grid gap-2 text-sm font-bold text-slate-700">
-                Categoria
-                <select value={config.category} onChange={(event) => updateConfig("category", event.target.value as ButtonConfig["category"])} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]">
-                  {buttonCategories.map((category) => <option key={category}>{category}</option>)}
-                </select>
-              </label>
-              <label className="grid gap-2 text-sm font-bold text-slate-700">
-                Layout
-                <select value={config.layout} onChange={(event) => updateConfig("layout", event.target.value as ButtonConfig["layout"])} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]">
-                  <option value="central">Central</option>
-                  <option value="badge">Selo</option>
-                  <option value="ribbon">Faixa</option>
-                </select>
-              </label>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <label className="grid gap-2 text-xs font-bold text-slate-700">Fundo<input type="color" value={config.backgroundColor} onChange={(event) => updateConfig("backgroundColor", event.target.value)} className="h-11 w-full rounded-md border border-slate-200" /></label>
-              <label className="grid gap-2 text-xs font-bold text-slate-700">Texto<input type="color" value={config.textColor} onChange={(event) => updateConfig("textColor", event.target.value)} className="h-11 w-full rounded-md border border-slate-200" /></label>
-              <label className="grid gap-2 text-xs font-bold text-slate-700">Destaque<input type="color" value={config.accentColor} onChange={(event) => updateConfig("accentColor", event.target.value)} className="h-11 w-full rounded-md border border-slate-200" /></label>
-            </div>
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Formato
-              <select value={config.shape} onChange={(event) => updateConfig("shape", event.target.value as ButtonConfig["shape"])} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]">
-                <option value="circle">Redondo</option>
-                <option value="rounded">Arredondado</option>
-                <option value="square">Quadrado</option>
-              </select>
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Fonte
-              <select value={config.fontFamily} onChange={(event) => updateConfig("fontFamily", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]">
-                {fonts.map((font) => <option key={font}>{font}</option>)}
-              </select>
-            </label>
-            <label className="flex items-center gap-3 text-sm font-bold text-slate-700">
-              <input type="checkbox" checked={config.showQrCode} onChange={(event) => updateConfig("showQrCode", event.target.checked)} className="size-4" />
-              Exibir QR Code
-            </label>
-            <label className="grid gap-2 text-sm font-bold text-slate-700">
-              Link do QR Code
-              <input value={config.qrCodeText} onChange={(event) => updateConfig("qrCodeText", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]" />
-            </label>
+            <label className="grid gap-2 text-sm font-bold text-slate-700">Nome do projeto<input value={projectName} onChange={(event) => setProjectName(event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]" /></label>
+            <label className="grid gap-2 text-sm font-bold text-slate-700">Texto principal<input value={config.title} onChange={(event) => updateConfig("title", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]" /></label>
+            <label className="grid gap-2 text-sm font-bold text-slate-700">Subtítulo<input value={config.subtitle} onChange={(event) => updateConfig("subtitle", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]" /></label>
+            <label className="grid gap-2 text-sm font-bold text-slate-700">Slogan<input value={config.slogan} onChange={(event) => updateConfig("slogan", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3 outline-none focus:border-[#00c853]" /></label>
+            <div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-2 text-sm font-bold text-slate-700">Categoria<select value={config.category} onChange={(event) => updateConfig("category", event.target.value as ButtonConfig["category"])} className="min-h-11 rounded-md border border-slate-200 px-3">{buttonCategories.map((category) => <option key={category}>{category}</option>)}</select></label><label className="grid gap-2 text-sm font-bold text-slate-700">Layout<select value={config.layout} onChange={(event) => updateConfig("layout", event.target.value as ButtonConfig["layout"])} className="min-h-11 rounded-md border border-slate-200 px-3"><option value="central">Central</option><option value="badge">Selo</option><option value="ribbon">Faixa</option></select></label></div>
+            <div className="grid grid-cols-3 gap-3"><label className="grid gap-2 text-xs font-bold text-slate-700">Fundo<input type="color" value={config.backgroundColor} onChange={(event) => updateConfig("backgroundColor", event.target.value)} className="h-11 w-full rounded-md border border-slate-200" /></label><label className="grid gap-2 text-xs font-bold text-slate-700">Texto<input type="color" value={config.textColor} onChange={(event) => updateConfig("textColor", event.target.value)} className="h-11 w-full rounded-md border border-slate-200" /></label><label className="grid gap-2 text-xs font-bold text-slate-700">Destaque<input type="color" value={config.accentColor} onChange={(event) => updateConfig("accentColor", event.target.value)} className="h-11 w-full rounded-md border border-slate-200" /></label></div>
+            <div className="grid gap-3 sm:grid-cols-3"><label className="grid gap-2 text-sm font-bold text-slate-700">Formato<select value={config.shape} onChange={(event) => updateConfig("shape", event.target.value as ButtonConfig["shape"])} className="min-h-11 rounded-md border border-slate-200 px-3"><option value="circle">Redondo</option><option value="rounded">Arredondado</option><option value="square">Quadrado</option></select></label><label className="grid gap-2 text-sm font-bold text-slate-700 sm:col-span-2">Fonte<select value={config.fontFamily} onChange={(event) => updateConfig("fontFamily", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3">{fonts.map((font) => <option key={font}>{font}</option>)}</select></label></div>
+            <label className="grid gap-2 text-sm font-bold text-slate-700">Qualidade do brilho<select value={config.gloss} onChange={(event) => updateConfig("gloss", event.target.value as ButtonGloss)} className="min-h-11 rounded-md border border-slate-200 px-3">{glossOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center gap-3"><Upload className="text-[#128C3E]" size={20} /><h2 className="text-xl font-black text-[#061421]">Enviar foto, arte ou logo</h2></div>
+          <div className="mt-4 grid gap-4">
+            <input type="file" accept="image/*" onChange={(event) => handleImageUpload(event.target.files?.[0])} className="rounded-md border border-slate-200 p-3 text-sm" />
+            <div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-2 text-sm font-bold text-slate-700">Modo da imagem<select value={config.imageFit} onChange={(event) => updateConfig("imageFit", event.target.value as ButtonImageFit)} className="min-h-11 rounded-md border border-slate-200 px-3"><option value="cover">Preencher círculo</option><option value="contain">Mostrar imagem inteira</option></select></label><button type="button" onClick={() => setConfig((current) => ({ ...current, imageX: 0, imageY: 0, imageScale: 100, imageRotation: 0 }))} className="self-end min-h-11 rounded-md border border-slate-200 px-4 text-sm font-black text-[#061421]">Centralizar imagem</button></div>
+            {[["Mover esquerda/direita", "imageX", -120, 120], ["Mover cima/baixo", "imageY", -120, 120], ["Aumentar/diminuir", "imageScale", 30, 220], ["Girar imagem", "imageRotation", -180, 180]].map(([label, key, min, max]) => <label key={String(key)} className="grid gap-2 text-sm font-bold text-slate-700">{label}<input type="range" min={Number(min)} max={Number(max)} value={Number(config[key as keyof ButtonConfig])} onChange={(event) => updateConfig(key as keyof ButtonConfig, Number(event.target.value) as never)} /></label>)}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <h2 className="text-xl font-black text-[#061421]">QR Code</h2>
+          <div className="mt-4 grid gap-4">
+            <label className="flex items-center gap-3 text-sm font-bold text-slate-700"><input type="checkbox" checked={config.showQrCode} onChange={(event) => updateConfig("showQrCode", event.target.checked)} className="size-4" />Exibir QR Code</label>
+            <label className="grid gap-2 text-sm font-bold text-slate-700">Tipo de QR Code<select value={config.qrType} onChange={(event) => updateConfig("qrType", event.target.value as ButtonConfig["qrType"])} className="min-h-11 rounded-md border border-slate-200 px-3"><option value="link">Link comum</option><option value="whatsapp">WhatsApp</option><option value="pix">Pix</option><option value="text">Texto livre</option></select></label>
+            {config.qrType === "link" ? <label className="grid gap-2 text-sm font-bold text-slate-700">Link<input value={config.qrCodeText} onChange={(event) => updateConfig("qrCodeText", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label> : null}
+            {config.qrType === "whatsapp" ? <div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-2 text-sm font-bold text-slate-700">Número WhatsApp<input value={config.whatsappNumber} onChange={(event) => updateConfig("whatsappNumber", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Mensagem<input value={config.whatsappMessage} onChange={(event) => updateConfig("whatsappMessage", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label></div> : null}
+            {config.qrType === "text" ? <label className="grid gap-2 text-sm font-bold text-slate-700">Texto livre<textarea value={config.freeText} onChange={(event) => updateConfig("freeText", event.target.value)} className="min-h-24 rounded-md border border-slate-200 p-3" /></label> : null}
+            {config.qrType === "pix" ? <div className="grid gap-3"><div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-2 text-sm font-bold text-slate-700">Tipo de chave Pix<select value={config.pixKeyType} onChange={(event) => updateConfig("pixKeyType", event.target.value as PixKeyType)} className="min-h-11 rounded-md border border-slate-200 px-3"><option value="cpf">CPF</option><option value="cnpj">CNPJ</option><option value="celular">Celular</option><option value="email">E-mail</option><option value="aleatoria">Chave aleatória</option></select></label><label className="grid gap-2 text-sm font-bold text-slate-700">Chave Pix<input value={config.pixKey} onChange={(event) => updateConfig("pixKey", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Nome completo do recebedor<input value={config.pixReceiverName} onChange={(event) => updateConfig("pixReceiverName", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Cidade<input value={config.pixCity} onChange={(event) => updateConfig("pixCity", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Valor opcional<input value={config.pixAmount} onChange={(event) => updateConfig("pixAmount", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Identificador opcional<input value={config.pixTransactionId} onChange={(event) => updateConfig("pixTransactionId", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label></div><label className="grid gap-2 text-sm font-bold text-slate-700">Descrição opcional<input value={config.pixDescription} onChange={(event) => updateConfig("pixDescription", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Pix Copia e Cola<textarea readOnly value={pixPayload || "Preencha chave Pix, nome do recebedor e cidade para gerar."} className="min-h-28 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs" /></label><button type="button" onClick={copyPix} className="min-h-11 rounded-md bg-[#061421] px-4 text-sm font-black text-white">Copiar Pix</button></div> : null}
+            <div className="grid gap-3 sm:grid-cols-3"><label className="grid gap-2 text-sm font-bold text-slate-700">Tamanho<input type="range" min="36" max="120" value={config.qrSize} onChange={(event) => updateConfig("qrSize", Number(event.target.value))} /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Posição horizontal<input type="range" min="0" max="100" value={config.qrX} onChange={(event) => updateConfig("qrX", Number(event.target.value))} /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Posição vertical<input type="range" min="0" max="100" value={config.qrY} onChange={(event) => updateConfig("qrY", Number(event.target.value))} /></label></div>
+            <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setQrPosition(50, 50)} className="rounded-md border border-slate-200 px-3 py-2 text-xs font-black">Centralizar QR Code</button><button type="button" onClick={() => setQrPosition(76, 76)} className="rounded-md border border-slate-200 px-3 py-2 text-xs font-black">Canto inferior direito</button><button type="button" onClick={() => setQrPosition(24, 76)} className="rounded-md border border-slate-200 px-3 py-2 text-xs font-black">Canto inferior esquerdo</button><button type="button" onClick={() => updateConfig("showQrCode", false)} className="rounded-md border border-red-200 px-3 py-2 text-xs font-black text-red-600">Remover QR Code</button></div>
           </div>
         </div>
 
         <ButtonTemplates onSelect={(templateConfig, name) => { setConfig(templateConfig); setProjectName(name); setCurrentProjectId(null); }} />
-      </aside>
 
-      <section className="grid gap-5">
-        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase text-[#128C3E]">Prévia</p>
-              <h1 className="text-2xl font-black text-[#061421]">{projectName}</h1>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={generateWithAi} disabled={isGeneratingAi} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#00c853] px-4 text-sm font-black text-[#061421] disabled:opacity-70">
-                {isGeneratingAi ? <Loader2 size={17} className="animate-spin" /> : <Sparkles size={17} />}
-                Gerar Arte com IA
-              </button>
-              <button type="button" onClick={saveProject} disabled={isSaving} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#061421] px-4 text-sm font-black text-white disabled:opacity-70">
-                {isSaving ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}
-                Salvar projeto
-              </button>
-              <button type="button" onClick={duplicateProject} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-black text-[#061421]"><Copy size={17} />Duplicar</button>
-              <button type="button" onClick={deleteProject} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-red-200 px-4 text-sm font-black text-red-600"><Trash2 size={17} />Excluir</button>
-              <button type="button" onClick={exportPng} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-black text-[#061421]"><Download size={17} />Exportar PNG</button>
-            </div>
-          </div>
-          {message ? <div className="mt-4 rounded-md bg-[#00c853]/10 p-3 text-sm font-bold text-[#128C3E]">{message}</div> : null}
-          {error ? <div className="mt-4 rounded-md bg-red-50 p-3 text-sm font-bold text-red-700">{error}</div> : null}
-          <div className="mt-8"><ButtonPreview config={config} /></div>
-        </div>
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"><div className="flex flex-wrap gap-2"><button type="button" onClick={generateWithAi} disabled={isGeneratingAi} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#00c853] px-4 text-sm font-black text-[#061421] disabled:opacity-70">{isGeneratingAi ? <Loader2 size={17} className="animate-spin" /> : <Sparkles size={17} />}Gerar Arte com IA</button><button type="button" onClick={saveProject} disabled={isSaving} className="inline-flex min-h-11 items-center gap-2 rounded-md bg-[#061421] px-4 text-sm font-black text-white disabled:opacity-70">{isSaving ? <Loader2 size={17} className="animate-spin" /> : <Save size={17} />}Salvar projeto</button><button type="button" onClick={duplicateProject} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-black text-[#061421]"><Copy size={17} />Duplicar</button><button type="button" onClick={deleteProject} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-red-200 px-4 text-sm font-black text-red-600"><Trash2 size={17} />Excluir</button><button type="button" onClick={() => exportPng(false)} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-slate-200 px-4 text-sm font-black text-[#061421]"><Download size={17} />Exportar PNG</button><button type="button" onClick={() => exportPng(true)} className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[#00c853] px-4 text-sm font-black text-[#128C3E]"><Download size={17} />Ultra HD</button></div>{message ? <div className="mt-4 rounded-md bg-[#00c853]/10 p-3 text-sm font-bold text-[#128C3E]">{message}</div> : null}{error ? <div className="mt-4 rounded-md bg-red-50 p-3 text-sm font-bold text-red-700">{error}</div> : null}</div>
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <ButtonMockup config={config} premium />
-          <div className="rounded-lg border border-slate-200 bg-[#061421] p-5 text-white shadow-sm">
-            <p className="text-xs font-black uppercase text-[#00c853]">Plano Premium</p>
-            <h2 className="mt-2 text-2xl font-black">Recursos exclusivos</h2>
-            <div className="mt-4 grid gap-3 text-sm text-white/75">
-              {[
-                "Mockups avançados",
-                "Exportação HD",
-                "Templates Premium",
-                "Projetos ilimitados",
-              ].map((item) => <p key={item} className="rounded-md bg-white/10 p-3 font-bold">{item}</p>)}
-            </div>
-          </div>
-        </div>
-
-        <ButtonA4Generator config={config} onDownload={exportA4} />
-
-        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-xl font-black text-[#061421]">Meus projetos</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {projects.length ? projects.map((project) => (
-              <button key={project.id} type="button" onClick={() => loadProject(project)} className="rounded-md border border-slate-200 p-4 text-left hover:border-[#00c853]">
-                <p className="font-black text-[#061421]">{project.nome_projeto}</p>
-                <p className="mt-1 text-xs text-slate-500">{new Date(project.created_at).toLocaleDateString("pt-BR")}</p>
-                <p className="mt-2 text-xs font-bold text-[#128C3E]">Downloads: {project.download_count || 0}</p>
-              </button>
-            )) : <p className="text-sm text-slate-500">Nenhum projeto salvo ainda.</p>}
-          </div>
-        </div>
+        <div className="grid gap-5 lg:grid-cols-2"><ButtonMockup config={previewConfig} premium /><div className="rounded-lg border border-slate-200 bg-[#061421] p-5 text-white shadow-sm"><p className="text-xs font-black uppercase text-[#00c853]">Área Premium</p><h2 className="mt-2 text-2xl font-black">Recursos exclusivos</h2><div className="mt-4 grid gap-3 text-sm text-white/75">{["Exportação Ultra HD", "Mockups Premium", "Templates Premium", "Projetos ilimitados"].map((item) => <p key={item} className="rounded-md bg-white/10 p-3 font-bold">{item}</p>)}</div></div></div>
+        <ButtonA4Generator config={previewConfig} onDownload={exportA4} />
+        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-xl font-black text-[#061421]">Meus projetos</h2><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{projects.length ? projects.map((project) => <button key={project.id} type="button" onClick={() => loadProject(project)} className="rounded-md border border-slate-200 p-4 text-left hover:border-[#00c853]"><p className="font-black text-[#061421]">{project.nome_projeto}</p><p className="mt-1 text-xs text-slate-500">{new Date(project.created_at).toLocaleDateString("pt-BR")}</p><p className="mt-2 text-xs font-bold text-[#128C3E]">Downloads: {project.download_count || 0}</p></button>) : <p className="text-sm text-slate-500">Nenhum projeto salvo ainda.</p>}</div></div>
       </section>
+
+      <aside className="hidden xl:block"><div className="sticky top-24">{preview}</div></aside>
+      {showMobilePreview ? <div className="xl:hidden">{preview}</div> : <button type="button" onClick={() => setShowMobilePreview(true)} className="fixed bottom-4 right-4 z-40 rounded-full bg-[#00c853] px-5 py-3 text-sm font-black text-[#061421] shadow-lg xl:hidden">Ver prévia</button>}
     </div>
   );
 }
