@@ -34,7 +34,7 @@ export function DashboardShell({
             <p className="text-sm font-black uppercase tracking-wide text-[#00c853]">
               Area do aluno
             </p>
-            <h1 className="text-2xl font-black text-[#061421]">Dashboard MKTBR Academia</h1>
+            <h1 className="text-2xl font-black text-[#061421]">Dashboard MKTBR</h1>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-3 sm:flex">
@@ -79,6 +79,8 @@ export function DashboardShell({
               ["Painel do administrador", "/dashboard/admin"],
               ["Marketplace de livros", "/livros"],
               ["MKTBR Social IA", "/social-ia/dashboard"],
+              ["Gerador de Bottons", "/painel/gerador-bottons"],
+              ["Admin Bottons", "/admin/bottons"],
             ].map(([label, href]) => (
               <Link
                 key={href}

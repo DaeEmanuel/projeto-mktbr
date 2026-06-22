@@ -31,12 +31,17 @@ export function SiteFooter() {
             <Link href="/contato" className="hover:text-[#00c853]">
               Suporte
             </Link>
+            <Link href="/privacy" className="hover:text-[#00c853]">
+              Política de Privacidade
+            </Link>
+            <Link href="/terms" className="hover:text-[#00c853]">
+              Termos de Uso
+            </Link>
           </div>
         </div>
       </div>
       <div className="border-t border-white/10 px-4 py-5 text-center text-xs text-white/45">
-        © 2026 MKTBR Academia. Plataforma independente. Acessível com VLibras.
-        Desenvolvido por{" "}
+        © 2026 MKTBR Academia. Plataforma independente. Acessível com VLibras. Desenvolvido por{" "}
         <a href="https://mdcarvalho.com" target="_blank" rel="noopener noreferrer">
           MD Carvalho
         </a>

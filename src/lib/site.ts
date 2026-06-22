@@ -17,11 +17,14 @@ import {
 } from "lucide-react";
 
 export const site = {
-  name: "MKTBR Academia",
+  name: "MKTBR",
   shortName: "MKTBR",
   domain: "mktbr.site",
+  brandTagline: "Aprenda • Publique • Venda",
+  brandSlogan: "Aprenda. Publique. Venda.",
   url: "https://mktbr.site",
-  slogan: "Cursos online, comunidade e assinatura em uma plataforma independente.",
+  slogan:
+    "O ecossistema brasileiro para quem deseja aprender, criar conteúdo e vender produtos digitais em uma única plataforma.",
   stripePlanName: "Academia Pro",
 };
 

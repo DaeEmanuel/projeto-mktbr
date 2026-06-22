@@ -25,7 +25,9 @@ export async function proxy(request: NextRequest) {
 
   const protectedPath =
     request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/social-ia/dashboard");
+    request.nextUrl.pathname.startsWith("/social-ia/dashboard") ||
+    request.nextUrl.pathname.startsWith("/painel") ||
+    request.nextUrl.pathname.startsWith("/admin");
 
   if (!protectedPath) {
     return NextResponse.next({ request });

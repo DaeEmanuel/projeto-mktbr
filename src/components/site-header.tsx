@@ -7,13 +7,13 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#061421]/96 text-white backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-3" aria-label="MKTBR Academia">
-          <span className="grid size-10 place-items-center rounded-md bg-[#00c853] text-[#061421]">
-            <GraduationCap size={23} strokeWidth={2.5} />
+        <Link href="/" className="flex items-center gap-3.5" aria-label="MKTBR">
+          <span className="grid size-11 place-items-center rounded-md bg-[#00c853] text-[#061421] sm:size-12">
+            <GraduationCap size={27} strokeWidth={2.5} />
           </span>
           <span>
-            <span className="block text-lg font-black leading-5">{site.name}</span>
-            <span className="hidden text-xs text-white/60 sm:block">{site.domain}</span>
+            <span className="block text-2xl font-black leading-6 tracking-normal sm:text-[1.65rem]">{site.name}</span>
+            <span className="hidden text-xs text-white/60 sm:block">{site.brandTagline}</span>
           </span>
         </Link>
         <nav className="hidden items-center gap-5 text-sm font-bold text-white/75 lg:flex">
