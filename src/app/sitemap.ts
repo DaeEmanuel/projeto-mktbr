@@ -14,6 +14,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${site.url}/terms`, lastModified: new Date() },
     { url: `${site.url}/politica-de-privacidade`, lastModified: new Date() },
     { url: `${site.url}/termos-de-uso`, lastModified: new Date() },
+    { url: `${site.url}/painel/gerador-bottons`, lastModified: new Date() },
+    { url: `${site.url}/painel/bottons`, lastModified: new Date() },
+    { url: `${site.url}/admin/bottons`, lastModified: new Date() },
     ...publicCourses.map((course) => ({
       url: `${site.url}/cursos/${course.slug}`,
       lastModified: new Date(),
