@@ -13,6 +13,7 @@ export async function POST(request: Request) {
       texto_botton: config.title || "MKTBR",
       qr_code: config.qrCodeText || "https://mktbr.site",
       layout: config.layout || "central",
+      paleta_cores: [config.backgroundColor || "#00C853", config.textColor || "#061421", config.accentColor || "#ffffff"],
       sugestoes_layout: "Sugestao local aplicada. Configure OPENAI_API_KEY para gerar ideias com IA em producao.",
     });
   }
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
         },
         {
           role: "user",
-          content: `Crie sugestoes para um botton profissional. Projeto: ${projectName}. Configuracao: ${JSON.stringify(config)}. Retorne chaves descricao_arte, slogan, texto_botton, qr_code, layout e sugestoes_layout.`,
+          content: `Crie sugestoes para um botton profissional. Projeto: ${projectName}. Configuracao: ${JSON.stringify(config)}. Retorne chaves descricao_arte, slogan, texto_botton, qr_code, layout, paleta_cores e sugestoes_layout. paleta_cores deve ser array com 3 cores hex: fundo, texto e destaque.`,
         },
       ],
       temperature: 0.8,

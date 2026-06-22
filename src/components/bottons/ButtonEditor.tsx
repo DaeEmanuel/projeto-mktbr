@@ -218,14 +218,22 @@ export function ButtonEditor() {
         throw new Error(data.error || "Nao foi possivel gerar arte com IA.");
       }
 
-      setConfig((current) => ({
-        ...current,
-        title: data.texto_botton || current.title,
-        slogan: data.slogan || current.slogan,
-        subtitle: data.descricao_arte || current.subtitle,
-        qrCodeText: data.qr_code || current.qrCodeText,
-        layout: data.layout || current.layout,
-      }));
+      setConfig((current) => {
+        const palette = Array.isArray(data.paleta_cores) ? data.paleta_cores : [];
+
+        return {
+          ...current,
+          title: data.texto_botton || current.title,
+          slogan: data.slogan || current.slogan,
+          subtitle: data.descricao_arte || current.subtitle,
+          qrCodeText: data.qr_code || current.qrCodeText,
+          layout: ["central", "badge", "ribbon"].includes(data.layout) ? data.layout : current.layout,
+          backgroundColor: palette[0] || current.backgroundColor,
+          textColor: palette[1] || current.textColor,
+          accentColor: palette[2] || current.accentColor,
+          showQrCode: true,
+        };
+      });
       setMessage(data.sugestoes_layout || "Sugestoes de IA aplicadas ao botton.");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Erro ao gerar arte com IA.");
@@ -341,8 +349,8 @@ export function ButtonEditor() {
               {[
                 "Mockups avançados",
                 "Exportação HD",
-                "Biblioteca Premium",
-                "Artes ilimitadas",
+                "Templates Premium",
+                "Projetos ilimitados",
               ].map((item) => <p key={item} className="rounded-md bg-white/10 p-3 font-bold">{item}</p>)}
             </div>
           </div>

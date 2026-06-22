@@ -80,6 +80,7 @@ export function DashboardShell({
               ["Marketplace de livros", "/livros"],
               ["MKTBR Social IA", "/social-ia/dashboard"],
               ["Gerador de Bottons", "/painel/gerador-bottons"],
+              ["Marketplace Bottons", "/marketplace/bottons"],
               ["Admin Bottons", "/admin/bottons"],
             ].map(([label, href]) => (
               <Link

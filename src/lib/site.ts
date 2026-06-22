@@ -36,6 +36,7 @@ export const navItems = [
   { href: "/ferramentas", label: "Ferramentas" },
   { href: "/painel/gerador-bottons", label: "Gerador de Bottons" },
   { href: "/painel/bottons", label: "Painel Bottons" },
+  { href: "/marketplace/bottons", label: "Marketplace Bottons" },
   { href: "/admin/bottons", label: "Admin Bottons" },
   { href: "/planos", label: "Planos" },
   { href: "/sobre", label: "Sobre" },

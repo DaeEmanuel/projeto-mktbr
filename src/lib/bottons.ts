@@ -1,13 +1,13 @@
 export type ButtonShape = "circle" | "rounded" | "square";
 export type ButtonCategory =
   | "Escolar"
-  | "Igreja"
-  | "Eventos"
   | "Empresas"
+  | "Igrejas"
+  | "Eventos"
   | "Marketing Digital"
-  | "Pets"
   | "Casamentos"
-  | "Aniversários";
+  | "Aniversários"
+  | "Pets";
 
 export type ButtonConfig = {
   title: string;
@@ -37,13 +37,13 @@ export type ButtonProject = {
 
 export const buttonCategories: ButtonCategory[] = [
   "Escolar",
-  "Igreja",
-  "Eventos",
   "Empresas",
+  "Igrejas",
+  "Eventos",
   "Marketing Digital",
-  "Pets",
   "Casamentos",
   "Aniversários",
+  "Pets",
 ];
 
 export const defaultButtonConfig: ButtonConfig = {
@@ -65,12 +65,16 @@ export const defaultButtonConfig: ButtonConfig = {
 export const buttonTemplates: Array<{
   name: string;
   category: ButtonCategory;
+  author: string;
+  price: string;
   premium?: boolean;
   config: ButtonConfig;
 }> = [
   {
     name: "Volta as Aulas",
     category: "Escolar",
+    author: "MKTBR Studio",
+    price: "Grátis",
     config: {
       ...defaultButtonConfig,
       title: "Minha Turma",
@@ -83,8 +87,27 @@ export const buttonTemplates: Array<{
     },
   },
   {
+    name: "Marca Corporativa",
+    category: "Empresas",
+    author: "MKTBR Empresas",
+    price: "R$ 9,90",
+    premium: true,
+    config: {
+      ...defaultButtonConfig,
+      title: "Equipe Pro",
+      subtitle: "Atendimento",
+      slogan: "Excelência em cada detalhe",
+      backgroundColor: "#0f172a",
+      textColor: "#ffffff",
+      accentColor: "#38bdf8",
+      layout: "central",
+    },
+  },
+  {
     name: "Encontro da Igreja",
-    category: "Igreja",
+    category: "Igrejas",
+    author: "Comunidade Criativa",
+    price: "Grátis",
     config: {
       ...defaultButtonConfig,
       title: "Encontro Jovem",
@@ -99,6 +122,8 @@ export const buttonTemplates: Array<{
   {
     name: "Credencial Evento",
     category: "Eventos",
+    author: "Eventos BR",
+    price: "R$ 7,90",
     config: {
       ...defaultButtonConfig,
       title: "Evento VIP",
@@ -111,22 +136,10 @@ export const buttonTemplates: Array<{
     },
   },
   {
-    name: "Marca Corporativa",
-    category: "Empresas",
-    config: {
-      ...defaultButtonConfig,
-      title: "Equipe Pro",
-      subtitle: "Atendimento",
-      slogan: "Excelência em cada detalhe",
-      backgroundColor: "#0f172a",
-      textColor: "#ffffff",
-      accentColor: "#38bdf8",
-      layout: "central",
-    },
-  },
-  {
     name: "Lançamento Digital",
     category: "Marketing Digital",
+    author: "MKTBR Growth",
+    price: "R$ 14,90",
     premium: true,
     config: {
       ...defaultButtonConfig,
@@ -140,22 +153,10 @@ export const buttonTemplates: Array<{
     },
   },
   {
-    name: "Pet Shop",
-    category: "Pets",
-    config: {
-      ...defaultButtonConfig,
-      title: "Meu Pet",
-      subtitle: "Clube de cuidados",
-      slogan: "Carinho que aparece",
-      backgroundColor: "#fb7185",
-      textColor: "#ffffff",
-      accentColor: "#fef9c3",
-      layout: "badge",
-    },
-  },
-  {
     name: "Casamento",
     category: "Casamentos",
+    author: "Ateliê Digital",
+    price: "R$ 12,90",
     premium: true,
     config: {
       ...defaultButtonConfig,
@@ -171,6 +172,8 @@ export const buttonTemplates: Array<{
   {
     name: "Aniversário",
     category: "Aniversários",
+    author: "Festa Fácil",
+    price: "Grátis",
     config: {
       ...defaultButtonConfig,
       title: "Parabéns!",
@@ -182,8 +185,26 @@ export const buttonTemplates: Array<{
       layout: "ribbon",
     },
   },
+  {
+    name: "Pet Shop",
+    category: "Pets",
+    author: "Pet Criativo",
+    price: "R$ 6,90",
+    config: {
+      ...defaultButtonConfig,
+      title: "Meu Pet",
+      subtitle: "Clube de cuidados",
+      slogan: "Carinho que aparece",
+      backgroundColor: "#fb7185",
+      textColor: "#ffffff",
+      accentColor: "#fef9c3",
+      layout: "badge",
+    },
+  },
 ];
 
 export function mergeButtonConfig(config?: Partial<ButtonConfig> | null): ButtonConfig {
-  return { ...defaultButtonConfig, ...(config || {}) };
+  const rawCategory = config?.category as string | undefined;
+  const normalizedCategory = rawCategory === "Igreja" ? "Igrejas" : config?.category;
+  return { ...defaultButtonConfig, ...(config || {}), category: normalizedCategory || defaultButtonConfig.category };
 }
