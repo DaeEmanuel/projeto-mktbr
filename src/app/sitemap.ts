@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     { url: `${site.url}/login`, lastModified: new Date() },
     { url: `${site.url}/cadastro`, lastModified: new Date() },
+    { url: `${site.url}/ferramentas/tiktok-autocreator`, lastModified: new Date() },
     ...publicCourses.map((course) => ({
       url: `${site.url}/cursos/${course.slug}`,
       lastModified: new Date(),

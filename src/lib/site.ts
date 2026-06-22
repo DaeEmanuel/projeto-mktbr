@@ -30,6 +30,7 @@ export const navItems = [
   { href: "/cursos", label: "Cursos" },
   { href: "/livros", label: "Livros" },
   { href: "/social-ia", label: "MKTBR Social IA" },
+  { href: "/ferramentas", label: "Ferramentas" },
   { href: "/planos", label: "Planos" },
   { href: "/sobre", label: "Sobre" },
   { href: "/contato", label: "Contato" },
@@ -173,3 +174,4 @@ export const iconSet = {
   CirclePlay,
   MessageCircle,
 };
+
