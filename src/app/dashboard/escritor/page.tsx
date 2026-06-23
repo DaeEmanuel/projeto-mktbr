@@ -25,6 +25,19 @@ type Payout = {
   created_at: string;
 };
 
+type Order = {
+  id: string;
+  purchase_code: string;
+  product_name: string;
+  buyer_name: string | null;
+  buyer_email: string | null;
+  amount: number;
+  payment_method: string;
+  payment_status: string;
+  paid_at: string | null;
+  created_at: string;
+};
+
 export const metadata = {
   title: "Painel do Escritor",
 };
@@ -39,7 +52,7 @@ export default async function WriterDashboardPage() {
     redirect("/login");
   }
 
-  const [{ data: salesData }, { data: payoutsData }, { data: booksData }] = await Promise.all([
+  const [{ data: salesData }, { data: payoutsData }, { data: booksData }, { data: ordersData }] = await Promise.all([
     supabase
       .from("book_sales")
       .select(
@@ -57,10 +70,17 @@ export default async function WriterDashboardPage() {
       .select("id, title, price_cents, published, short_slug, slug")
       .eq("writer_id", user.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("orders")
+      .select("id, purchase_code, product_name, buyer_name, buyer_email, amount, payment_method, payment_status, paid_at, created_at")
+      .eq("author_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(6),
   ]);
 
   const sales = (salesData || []) as unknown as Sale[];
   const payouts = (payoutsData || []) as unknown as Payout[];
+  const recentOrders = (ordersData || []) as unknown as Order[];
   const totalSold = sales.reduce((sum, sale) => sum + sale.sale_amount_cents, 0);
   const platformCommission = sales.reduce(
     (sum, sale) => sum + sale.platform_commission_cents,
@@ -141,6 +161,30 @@ export default async function WriterDashboardPage() {
           </section>
         </div>
 
+
+        <section className="rounded-lg border border-slate-200 bg-white p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-wide text-[#00c853]">Vendas Recentes</p>
+              <h2 className="mt-1 text-xl font-black text-[#061421]">Novas vendas realizadas</h2>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {recentOrders.map((order) => (
+              <div key={order.id} className="rounded-md border border-[#00c853]/30 bg-[#00c853]/10 p-4">
+                <p className="text-sm font-black text-[#128C3E]">Nova venda realizada</p>
+                <p className="mt-2 font-black text-[#061421]">Produto: {order.product_name}</p>
+                <p className="text-sm text-slate-600">Cliente: {order.buyer_name || order.buyer_email || "Cliente MKTBR"}</p>
+                <p className="text-sm text-slate-600">Valor: {formatCurrency(order.amount)}</p>
+                <p className="text-sm text-slate-600">Data: {new Date(order.paid_at || order.created_at).toLocaleString("pt-BR")}</p>
+                <Link href={`/dashboard/escritor?order=${order.id}`} className="mt-3 inline-flex rounded-md bg-[#061421] px-3 py-2 text-xs font-black text-white">
+                  Ver detalhes
+                </Link>
+              </div>
+            ))}
+            {recentOrders.length === 0 ? <p className="text-sm text-slate-500">Nenhuma venda recente.</p> : null}
+          </div>
+        </section>
         <section className="rounded-lg border border-slate-200 bg-white p-5">
           <h2 className="text-xl font-black text-[#061421]">Historico de pagamentos</h2>
           <div className="mt-4 overflow-x-auto">

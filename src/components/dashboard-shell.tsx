@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { PortalButton } from "@/components/portal-button";
 import { SignOutButton } from "@/components/sign-out-button";
@@ -6,6 +6,7 @@ import { SignOutButton } from "@/components/sign-out-button";
 const navigationItems = [
   ["Dashboard", "/dashboard"],
   ["Meus Cursos", "/dashboard/meus-cursos"],
+  ["Minhas Compras", "/dashboard/compras"],
   ["Minha Assinatura", "/dashboard/minha-assinatura"],
   ["Editar Perfil", "/dashboard/perfil"],
   ["Painel do escritor", "/dashboard/escritor"],

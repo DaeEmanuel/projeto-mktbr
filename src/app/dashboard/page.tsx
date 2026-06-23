@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CheckCircle2, Gem, PlayCircle, Radio, Sparkles, Trophy, Users, Video, Bell, BarChart3, Bot, Mail } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { PurchaseRealtimeNotice } from "@/components/purchase-realtime-notice";
 import { courseModules, dashboardItems, publicCourses } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
@@ -102,14 +103,28 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("status, plan_name")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: subscription }, { data: ordersData }] = await Promise.all([
+    supabase.from("subscriptions").select("status, plan_name").eq("user_id", user.id).maybeSingle(),
+    supabase
+      .from("orders")
+      .select("id, product_name, amount, payment_status, paid_at, created_at")
+      .eq("buyer_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(6),
+  ]);
+
+  const confirmedOrders = ordersData?.filter((order) => order.payment_status === "Pagamento Confirmado") || [];
+  const latestConfirmedOrder = confirmedOrders[0];
 
   return (
     <DashboardShell user={user} subscription={subscription}>
+      <PurchaseRealtimeNotice userId={user.id} />
+      {latestConfirmedOrder ? (
+        <div className="rounded-[1.25rem] border border-[#00c853]/40 bg-[#00c853]/10 p-4 text-sm font-black text-[#05281f] shadow-sm">
+          Compra confirmada com sucesso! Seu acesso a {latestConfirmedOrder.product_name} já foi liberado.
+        </div>
+      ) : null}
+
       <section className="overflow-hidden rounded-[1.75rem] bg-[#05281f] text-white shadow-2xl">
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
           <div className="flex flex-col justify-center">
@@ -132,7 +147,12 @@ export default async function DashboardPage() {
           <div className="rounded-[1.5rem] border border-white/10 bg-white/8 p-4 shadow-inner">
             <div className="rounded-[1.2rem] bg-[#f4f8f3] p-4 text-[#061421]">
               <div className="grid gap-3 sm:grid-cols-2">
-                {dashboardItems.map((item) => {
+                <div className="rounded-2xl bg-white p-4 shadow-sm">
+                  <p className="text-xs font-black uppercase text-[#00a843]">Compras</p>
+                  <p className="mt-4 text-2xl font-black">{confirmedOrders.length}</p>
+                  <p className="text-sm font-bold text-slate-500">Acessos liberados</p>
+                </div>
+                {dashboardItems.slice(0, 3).map((item) => {
                   const Icon = item.icon;
                   return (
                     <div key={item.label} className="rounded-2xl bg-white p-4 shadow-sm">

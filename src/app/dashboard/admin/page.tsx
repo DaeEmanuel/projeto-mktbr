@@ -26,6 +26,17 @@ type Payout = {
   created_at: string;
 };
 
+type Order = {
+  id: string;
+  purchase_code: string;
+  product_name: string;
+  author_id: string | null;
+  amount: number;
+  payment_status: string;
+  paid_at: string | null;
+  created_at: string;
+};
+
 export const metadata = {
   title: "Painel Administrativo",
 };
@@ -65,7 +76,11 @@ export default async function AdminDashboardPage() {
     );
   }
 
-  const [{ data: salesData }, { data: payoutsData }] = await Promise.all([
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
+
+  const [{ data: salesData }, { data: payoutsData }, { data: ordersData }] = await Promise.all([
     supabase
       .from("book_sales")
       .select(
@@ -76,17 +91,26 @@ export default async function AdminDashboardPage() {
       .from("writer_payouts")
       .select("id, writer_id, amount_cents, status, payout_reference, created_at")
       .order("created_at", { ascending: false }),
+    supabase
+      .from("orders")
+      .select("id, purchase_code, product_name, author_id, amount, payment_status, paid_at, created_at")
+      .eq("payment_status", "Pagamento Confirmado")
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
   const sales = (salesData || []) as unknown as Sale[];
   const payouts = (payoutsData || []) as unknown as Payout[];
+  const orders = (ordersData || []) as unknown as Order[];
+  const salesToday = orders.filter((order) => new Date(order.paid_at || order.created_at) >= todayStart);
+  const monthOrders = orders.filter((order) => new Date(order.paid_at || order.created_at) >= monthStart);
+  const dailyRevenue = salesToday.reduce((sum, order) => sum + order.amount, 0);
+  const monthlyRevenue = monthOrders.reduce((sum, order) => sum + order.amount, 0);
+  const latestOrder = orders[0];
   const totalCommissions = sales.reduce(
     (sum, sale) => sum + sale.platform_commission_cents,
     0,
   );
-  const pendingPayouts = payouts
-    .filter((payout) => payout.status === "pending")
-    .reduce((sum, payout) => sum + payout.amount_cents, 0);
 
   const bookCounts = [...sales.reduce((map, sale) => {
     const title = sale.books?.title || sale.book_id;
@@ -101,9 +125,9 @@ export default async function AdminDashboardPage() {
 
   const metrics = [
     { label: "Total arrecadado em comissoes", value: formatCurrency(totalCommissions) },
-    { label: "Livros vendidos", value: String(sales.length) },
-    { label: "Escritores com vendas", value: String(writerTotals.length) },
-    { label: "Repasses pendentes", value: formatCurrency(pendingPayouts) },
+    { label: "Vendas hoje", value: String(salesToday.length) },
+    { label: "Faturamento do dia", value: formatCurrency(dailyRevenue) },
+    { label: "Receita mensal", value: formatCurrency(monthlyRevenue) },
   ];
 
   return (
@@ -130,6 +154,17 @@ export default async function AdminDashboardPage() {
           ))}
         </div>
 
+
+        <section className="rounded-lg border border-[#00c853]/30 bg-[#00c853]/10 p-5">
+          <p className="text-xs font-black uppercase tracking-wide text-[#128C3E]">Novas Compras</p>
+          <h2 className="mt-1 text-xl font-black text-[#061421]">Resumo de confirmações automáticas</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-4">
+            <div className="rounded-md bg-white p-4"><p className="text-sm font-bold text-slate-500">Vendas hoje</p><p className="mt-2 text-2xl font-black">{salesToday.length}</p></div>
+            <div className="rounded-md bg-white p-4"><p className="text-sm font-bold text-slate-500">Faturamento do dia</p><p className="mt-2 text-2xl font-black">{formatCurrency(dailyRevenue)}</p></div>
+            <div className="rounded-md bg-white p-4"><p className="text-sm font-bold text-slate-500">Última venda</p><p className="mt-2 text-sm font-black">{latestOrder?.product_name || "Nenhuma venda"}</p></div>
+            <div className="rounded-md bg-white p-4"><p className="text-sm font-bold text-slate-500">Autor responsável</p><p className="mt-2 truncate text-sm font-black">{latestOrder?.author_id || "-"}</p></div>
+          </div>
+        </section>
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-lg border border-slate-200 bg-white p-5">
             <h2 className="text-xl font-black text-[#061421]">Livros mais vendidos</h2>

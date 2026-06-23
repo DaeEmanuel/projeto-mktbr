@@ -55,7 +55,7 @@ export async function POST(request: Request) {
         quantity: 1,
       },
     ],
-    success_url: `${appUrl}/dashboard?book_checkout=success`,
+    success_url: `${appUrl}/dashboard/compras?book_checkout=success`,
     cancel_url: `${appUrl}/livros?book_checkout=cancelled`,
     metadata: {
       product: "book",
@@ -65,6 +65,7 @@ export async function POST(request: Request) {
       sale_amount_cents: String(book.price_cents),
       platform_commission_cents: String(PLATFORM_COMMISSION_CENTS),
       writer_net_cents: String(writerNetCents),
+      product_name: book.title,
     },
   });
 
