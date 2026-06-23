@@ -45,6 +45,7 @@ export type ButtonConfig = {
   pixKey: string;
   pixReceiverName: string;
   pixCity: string;
+  pixBankName: string;
   pixAmount: string;
   pixTransactionId: string;
   pixDescription: string;
@@ -103,6 +104,7 @@ export const defaultButtonConfig: ButtonConfig = {
   pixKey: "",
   pixReceiverName: "",
   pixCity: "",
+  pixBankName: "",
   pixAmount: "",
   pixTransactionId: "MKTBR",
   pixDescription: "",

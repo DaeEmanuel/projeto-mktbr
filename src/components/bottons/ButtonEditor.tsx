@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Copy, Download, Loader2, Save, Sparkles, Trash2, Upload } from "lucide-react";
 import type { ButtonConfig, ButtonGloss, ButtonImageFit, ButtonProject, PixKeyType } from "@/lib/bottons";
 import { buttonCategories, defaultButtonConfig, mergeButtonConfig } from "@/lib/bottons";
+import { buildPixPayload } from "@/lib/pix";
 import { ButtonA4Generator } from "./ButtonA4Generator";
 import { ButtonMockup } from "./ButtonMockup";
 import { ButtonPreview } from "./ButtonPreview";
@@ -20,50 +21,20 @@ const glossOptions: Array<{ value: ButtonGloss; label: string }> = [
   { value: "metallic", label: "Efeito metálico" },
 ];
 
-function crc16(payload: string) {
-  let crc = 0xffff;
-  for (let index = 0; index < payload.length; index += 1) {
-    crc ^= payload.charCodeAt(index) << 8;
-    for (let bit = 0; bit < 8; bit += 1) {
-      crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
-      crc &= 0xffff;
-    }
-  }
-  return crc.toString(16).toUpperCase().padStart(4, "0");
+function getPixPayloadResult(config: ButtonConfig) {
+  return buildPixPayload({
+    keyType: config.pixKeyType,
+    key: config.pixKey,
+    receiverName: config.pixReceiverName,
+    amount: config.pixAmount,
+    transactionId: config.pixTransactionId,
+    description: config.pixDescription,
+  });
 }
 
-function emv(id: string, value: string) {
-  return `${id}${value.length.toString().padStart(2, "0")}${value}`;
-}
-
-function sanitizePixText(value: string, max: number) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9 .@+\-_]/g, "").slice(0, max).trim();
-}
-
-function buildPixPayload(config: ButtonConfig) {
-  const key = config.pixKey.trim();
-  const receiver = sanitizePixText(config.pixReceiverName, 25).toUpperCase();
-  const city = sanitizePixText(config.pixCity || "SAO PAULO", 15).toUpperCase();
-  const txid = sanitizePixText(config.pixTransactionId || "MKTBR", 25) || "MKTBR";
-  const amount = config.pixAmount.trim().replace(",", ".");
-  const description = sanitizePixText(config.pixDescription, 60);
-
-  if (!key || !receiver || !city) return "";
-
-  const merchantAccount = emv("00", "br.gov.bcb.pix") + emv("01", key) + (description ? emv("02", description) : "");
-  const payloadWithoutCrc =
-    emv("00", "01") +
-    emv("26", merchantAccount) +
-    emv("52", "0000") +
-    emv("53", "986") +
-    (amount && Number(amount) > 0 ? emv("54", Number(amount).toFixed(2)) : "") +
-    emv("58", "BR") +
-    emv("59", receiver) +
-    emv("60", city) +
-    emv("62", emv("05", txid)) +
-    "6304";
-
-  return `${payloadWithoutCrc}${crc16(payloadWithoutCrc)}`;
+function getPixPayload(config: ButtonConfig) {
+  const result = getPixPayloadResult(config);
+  return result.ok ? result.payload : "";
 }
 
 function buildQrValue(config: ButtonConfig) {
@@ -72,7 +43,7 @@ function buildQrValue(config: ButtonConfig) {
     const message = encodeURIComponent(config.whatsappMessage || "Olá!");
     return phone ? `https://wa.me/${phone}?text=${message}` : "";
   }
-  if (config.qrType === "pix") return buildPixPayload(config);
+  if (config.qrType === "pix") return getPixPayload(config);
   if (config.qrType === "text") return config.freeText;
   return config.qrCodeText;
 }
@@ -141,7 +112,8 @@ export function ButtonEditor() {
   const [showMobilePreview, setShowMobilePreview] = useState(true);
 
   const qrValue = useMemo(() => buildQrValue(config), [config]);
-  const pixPayload = useMemo(() => buildPixPayload(config), [config]);
+  const pixResult = useMemo(() => getPixPayloadResult(config), [config]);
+  const pixPayload = pixResult.ok ? pixResult.payload : "";
   const previewConfig = useMemo(() => ({ ...config, qrCodeText: qrValue }), [config, qrValue]);
   const previewData = useMemo(() => makePreviewData(previewConfig), [previewConfig]);
 
@@ -247,9 +219,15 @@ export function ButtonEditor() {
   }
 
   async function copyPix() {
-    if (!pixPayload) { setError("Preencha chave Pix, nome do recebedor e cidade antes de copiar."); return; }
+    if (!pixPayload) { setError(pixResult.ok ? "Nao foi possivel gerar o Pix." : pixResult.error); return; }
     await navigator.clipboard.writeText(pixPayload);
     setMessage("Pix Copia e Cola copiado.");
+  }
+
+  function testPixFormat() {
+    if (!pixResult.ok) { setError(pixResult.error); setMessage(""); return; }
+    setError("");
+    setMessage(`Formato Pix valido. Chave normalizada: ${pixResult.normalizedKey}. Cidade interna: ${pixResult.city}.`);
   }
 
   const preview = (
@@ -298,7 +276,55 @@ export function ButtonEditor() {
             {config.qrType === "link" ? <label className="grid gap-2 text-sm font-bold text-slate-700">Link<input value={config.qrCodeText} onChange={(event) => updateConfig("qrCodeText", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label> : null}
             {config.qrType === "whatsapp" ? <div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-2 text-sm font-bold text-slate-700">Número WhatsApp<input value={config.whatsappNumber} onChange={(event) => updateConfig("whatsappNumber", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Mensagem<input value={config.whatsappMessage} onChange={(event) => updateConfig("whatsappMessage", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label></div> : null}
             {config.qrType === "text" ? <label className="grid gap-2 text-sm font-bold text-slate-700">Texto livre<textarea value={config.freeText} onChange={(event) => updateConfig("freeText", event.target.value)} className="min-h-24 rounded-md border border-slate-200 p-3" /></label> : null}
-            {config.qrType === "pix" ? <div className="grid gap-3"><div className="grid gap-3 sm:grid-cols-2"><label className="grid gap-2 text-sm font-bold text-slate-700">Tipo de chave Pix<select value={config.pixKeyType} onChange={(event) => updateConfig("pixKeyType", event.target.value as PixKeyType)} className="min-h-11 rounded-md border border-slate-200 px-3"><option value="cpf">CPF</option><option value="cnpj">CNPJ</option><option value="celular">Celular</option><option value="email">E-mail</option><option value="aleatoria">Chave aleatória</option></select></label><label className="grid gap-2 text-sm font-bold text-slate-700">Chave Pix<input value={config.pixKey} onChange={(event) => updateConfig("pixKey", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Nome completo do recebedor<input value={config.pixReceiverName} onChange={(event) => updateConfig("pixReceiverName", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Cidade<input value={config.pixCity} onChange={(event) => updateConfig("pixCity", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Valor opcional<input value={config.pixAmount} onChange={(event) => updateConfig("pixAmount", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Identificador opcional<input value={config.pixTransactionId} onChange={(event) => updateConfig("pixTransactionId", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label></div><label className="grid gap-2 text-sm font-bold text-slate-700">Descrição opcional<input value={config.pixDescription} onChange={(event) => updateConfig("pixDescription", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Pix Copia e Cola<textarea readOnly value={pixPayload || "Preencha chave Pix, nome do recebedor e cidade para gerar."} className="min-h-28 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs" /></label><button type="button" onClick={copyPix} className="min-h-11 rounded-md bg-[#061421] px-4 text-sm font-black text-white">Copiar Pix</button></div> : null}
+            {config.qrType === "pix" ? (
+              <div className="grid gap-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-2 text-sm font-bold text-slate-700">
+                    Tipo de chave Pix
+                    <select value={config.pixKeyType} onChange={(event) => updateConfig("pixKeyType", event.target.value as PixKeyType)} className="min-h-11 rounded-md border border-slate-200 px-3">
+                      <option value="cpf">CPF</option>
+                      <option value="cnpj">CNPJ</option>
+                      <option value="celular">Celular</option>
+                      <option value="email">E-mail</option>
+                      <option value="aleatoria">Chave aleatoria</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-2 text-sm font-bold text-slate-700">
+                    Chave Pix
+                    <input value={config.pixKey} onChange={(event) => updateConfig("pixKey", event.target.value)} placeholder={config.pixKeyType === "celular" ? "85991918960" : ""} className="min-h-11 rounded-md border border-slate-200 px-3" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-bold text-slate-700">
+                    Nome completo do recebedor
+                    <input value={config.pixReceiverName} onChange={(event) => updateConfig("pixReceiverName", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-bold text-slate-700">
+                    Nome do banco
+                    <input value={config.pixBankName} onChange={(event) => updateConfig("pixBankName", event.target.value)} placeholder="Apenas para organizacao" className="min-h-11 rounded-md border border-slate-200 px-3" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-bold text-slate-700">
+                    Valor opcional
+                    <input value={config.pixAmount} onChange={(event) => updateConfig("pixAmount", event.target.value)} placeholder="Ex.: 29,90" className="min-h-11 rounded-md border border-slate-200 px-3" />
+                  </label>
+                  <label className="grid gap-2 text-sm font-bold text-slate-700">
+                    Identificador da transacao
+                    <input value={config.pixTransactionId} onChange={(event) => updateConfig("pixTransactionId", event.target.value)} placeholder="*** quando vazio" className="min-h-11 rounded-md border border-slate-200 px-3" />
+                  </label>
+                </div>
+                <label className="grid gap-2 text-sm font-bold text-slate-700">
+                  Descricao opcional
+                  <input value={config.pixDescription} onChange={(event) => updateConfig("pixDescription", event.target.value)} className="min-h-11 rounded-md border border-slate-200 px-3" />
+                </label>
+                <p className="rounded-md bg-slate-50 p-3 text-xs font-bold text-slate-600">Cidade usada automaticamente no Pix: BRASIL. O nome do banco nao entra no payload Pix.</p>
+                <label className="grid gap-2 text-sm font-bold text-slate-700">
+                  Pix Copia e Cola
+                  <textarea readOnly value={pixPayload || (pixResult.ok ? "Preencha os dados Pix para gerar." : pixResult.error)} className="min-h-28 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs" />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={testPixFormat} className="min-h-11 rounded-md border border-[#00c853] px-4 text-sm font-black text-[#128C3E]">Testar formato Pix</button>
+                  <button type="button" onClick={copyPix} className="min-h-11 rounded-md bg-[#061421] px-4 text-sm font-black text-white">Copiar Pix</button>
+                </div>
+              </div>
+            ) : null}
             <div className="grid gap-3 sm:grid-cols-3"><label className="grid gap-2 text-sm font-bold text-slate-700">Tamanho<input type="range" min="36" max="120" value={config.qrSize} onChange={(event) => updateConfig("qrSize", Number(event.target.value))} /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Posição horizontal<input type="range" min="0" max="100" value={config.qrX} onChange={(event) => updateConfig("qrX", Number(event.target.value))} /></label><label className="grid gap-2 text-sm font-bold text-slate-700">Posição vertical<input type="range" min="0" max="100" value={config.qrY} onChange={(event) => updateConfig("qrY", Number(event.target.value))} /></label></div>
             <div className="flex flex-wrap gap-2"><button type="button" onClick={() => setQrPosition(50, 50)} className="rounded-md border border-slate-200 px-3 py-2 text-xs font-black">Centralizar QR Code</button><button type="button" onClick={() => setQrPosition(76, 76)} className="rounded-md border border-slate-200 px-3 py-2 text-xs font-black">Canto inferior direito</button><button type="button" onClick={() => setQrPosition(24, 76)} className="rounded-md border border-slate-200 px-3 py-2 text-xs font-black">Canto inferior esquerdo</button><button type="button" onClick={() => updateConfig("showQrCode", false)} className="rounded-md border border-red-200 px-3 py-2 text-xs font-black text-red-600">Remover QR Code</button></div>
           </div>
