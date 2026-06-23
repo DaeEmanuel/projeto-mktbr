@@ -32,9 +32,9 @@ export function DashboardShell({
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div>
             <p className="text-sm font-black uppercase tracking-wide text-[#00c853]">
-              Area do aluno
+              MEU PAINEL
             </p>
-            <h1 className="text-2xl font-black text-[#061421]">Dashboard MKTBR</h1>
+            <h1 className="text-2xl font-black text-[#061421]">Central do Usuário</h1>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden items-center gap-3 sm:flex">

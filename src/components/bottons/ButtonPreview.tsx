@@ -7,7 +7,7 @@ import { QRCodeGenerator } from "./QRCodeGenerator";
 const glossStyles: Record<ButtonConfig["gloss"], string> = {
   none: "",
   light: "linear-gradient(135deg, rgba(255,255,255,.22), transparent 38%)",
-  normal: "linear-gradient(135deg, rgba(255,255,255,.34), transparent 42%)",
+  medium: "linear-gradient(135deg, rgba(255,255,255,.34), transparent 42%)",
   strong: "linear-gradient(135deg, rgba(255,255,255,.48), transparent 45%)",
   premium: "radial-gradient(circle at 26% 18%, rgba(255,255,255,.72), transparent 24%), linear-gradient(135deg, rgba(255,255,255,.42), transparent 46%)",
   glass: "linear-gradient(145deg, rgba(255,255,255,.55), rgba(255,255,255,.06) 42%, rgba(255,255,255,.22))",
@@ -27,6 +27,12 @@ export function ButtonPreview({
   const radius = config.shape === "circle" ? "9999px" : config.shape === "rounded" ? "28px" : "10px";
   const isRibbon = config.layout === "ribbon";
   const isBadge = config.layout === "badge";
+  const backgroundStyle =
+    config.backgroundType === "gradient"
+      ? `linear-gradient(135deg, ${config.gradientFrom}, ${config.gradientTo})`
+      : config.backgroundType === "image" && config.backgroundImageDataUrl
+        ? `radial-gradient(circle at 24% 20%, ${config.accentColor}44, transparent 32%), url(${config.backgroundImageDataUrl}) center/cover no-repeat`
+        : `radial-gradient(circle at 24% 20%, ${config.accentColor}55, transparent 32%), ${config.backgroundColor}`;
   const containerRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -48,7 +54,7 @@ export function ButtonPreview({
           width: size,
           height: size,
           borderRadius: radius,
-          background: `radial-gradient(circle at 24% 20%, ${config.accentColor}55, transparent 32%), ${config.backgroundColor}`,
+          background: backgroundStyle,
           color: config.textColor,
           fontFamily: config.fontFamily,
         }}
