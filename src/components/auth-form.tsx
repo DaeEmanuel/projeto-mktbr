@@ -47,7 +47,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
 
     const redirectTo = new URLSearchParams(window.location.search).get("redirect");
-    router.push(redirectTo || "/meu-painel");
+    const target = !redirectTo || ["/dashboard", "/painel", "/area-do-aluno"].includes(redirectTo) ? "/meu-painel" : redirectTo;
+    router.push(target);
     router.refresh();
   }
 
