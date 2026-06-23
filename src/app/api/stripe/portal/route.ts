@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 
@@ -9,7 +9,7 @@ export async function POST() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Nao autenticado." }, { status: 401 });
+    return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   }
 
   const { data: subscription } = await supabase
@@ -19,7 +19,7 @@ export async function POST() {
     .maybeSingle();
 
   if (!subscription?.stripe_customer_id) {
-    return NextResponse.json({ error: "Cliente Stripe ainda nao vinculado." }, { status: 400 });
+    return NextResponse.json({ error: "Aguardando pagamento. Assim que sua assinatura for ativada, o gerenciamento ficará disponível." }, { status: 400 });
   }
 
   const stripe = getStripe();
@@ -31,3 +31,4 @@ export async function POST() {
 
   return NextResponse.json({ url: session.url });
 }
+

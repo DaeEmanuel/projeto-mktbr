@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -28,7 +28,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             password,
             options: {
               data: { name },
-              emailRedirectTo: `${getAppUrl()}/auth/callback?next=/dashboard`,
+              emailRedirectTo: `${getAppUrl()}/auth/callback?next=/meu-painel`,
             },
           })
         : await supabase.auth.signInWithPassword({ email, password });
@@ -47,7 +47,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
 
     const redirectTo = new URLSearchParams(window.location.search).get("redirect");
-    router.push(redirectTo || "/dashboard");
+    router.push(redirectTo || "/meu-painel");
     router.refresh();
   }
 
@@ -112,3 +112,4 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     </form>
   );
 }
+

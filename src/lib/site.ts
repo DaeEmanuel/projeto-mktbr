@@ -1,4 +1,4 @@
-import {
+﻿import {
   Award,
   BarChart3,
   BookOpen,
@@ -20,11 +20,11 @@ export const site = {
   name: "MKTBR",
   shortName: "MKTBR",
   domain: "mktbr.site",
-  brandTagline: "Aprenda • Publique • Venda",
+  brandTagline: "Aprenda â€¢ Publique â€¢ Venda",
   brandSlogan: "Aprenda. Publique. Venda.",
   url: "https://mktbr.site",
   slogan:
-    "O ecossistema brasileiro para quem deseja aprender, criar conteúdo e vender produtos digitais em uma única plataforma.",
+    "O ecossistema brasileiro para quem deseja aprender, criar conteÃºdo e vender produtos digitais em uma Ãºnica plataforma.",
   stripePlanName: "Academia Pro",
 };
 
@@ -34,6 +34,7 @@ export const navItems = [
   { href: "/livros", label: "Livros" },
   { href: "/social-ia", label: "MKTBR Social IA" },
   { href: "/ferramentas", label: "Ferramentas" },
+  { href: "/dashboard", label: "Painel" },
   { href: "/painel/gerador-bottons", label: "Gerador de Bottons" },
   { href: "/painel/bottons", label: "Painel Bottons" },
   { href: "/marketplace/bottons", label: "Marketplace Bottons" },
@@ -181,4 +182,5 @@ export const iconSet = {
   CirclePlay,
   MessageCircle,
 };
+
 

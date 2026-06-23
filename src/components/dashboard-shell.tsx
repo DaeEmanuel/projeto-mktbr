@@ -51,13 +51,14 @@ export function DashboardShell({
   children,
 }: {
   user: DashboardUser;
-  subscription?: { status?: string | null; plan_name?: string | null } | null;
+  subscription?: { status?: string | null; plan_name?: string | null; subscription_status?: string | null; subscription_plan?: string | null } | null;
   children: ReactNode;
 }) {
   const displayName = getDisplayName(user);
   const avatarUrl = user.user_metadata?.avatar_url;
-  const planName = subscription?.plan_name || "MKTBR Pro";
-  const planStatus = subscription?.status || "pendente";
+  const planName = subscription?.subscription_plan || subscription?.plan_name || "MKTBR Pro";
+  const rawPlanStatus = subscription?.subscription_status || subscription?.status || "pending";
+  const planStatus = rawPlanStatus === "active" ? "🟢 Plano Ativo" : rawPlanStatus === "canceled" ? "🔴 Plano Expirado" : "Aguardando Pagamento";
   const userId = user.id || "";
 
   return (
@@ -87,7 +88,7 @@ export function DashboardShell({
             <div className="mt-4 rounded-xl bg-[#031c16] p-3">
               <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#83f5aa]">Área Privada</p>
               <p className="mt-1 text-sm font-black text-white">{planName}</p>
-              <p className="text-xs font-semibold capitalize text-white/60">Status: {planStatus}</p>
+              <p className="text-xs font-semibold text-white/60">{planStatus}</p>
             </div>
             <div className="mt-3">
               <PortalButton />
@@ -130,3 +131,4 @@ export function DashboardShell({
     </main>
   );
 }
+

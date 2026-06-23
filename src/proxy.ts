@@ -1,4 +1,4 @@
-import { createServerClient } from "@supabase/ssr";
+﻿import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicConfig } from "./lib/supabase/env";
 
@@ -25,6 +25,7 @@ export async function proxy(request: NextRequest) {
 
   const protectedPath =
     request.nextUrl.pathname.startsWith("/dashboard") ||
+    request.nextUrl.pathname.startsWith("/meu-painel") ||
     request.nextUrl.pathname.startsWith("/social-ia/dashboard") ||
     request.nextUrl.pathname.startsWith("/painel") ||
     request.nextUrl.pathname.startsWith("/admin");
@@ -34,30 +35,34 @@ export async function proxy(request: NextRequest) {
   }
 
   let response = NextResponse.next({ request });
-  const { supabaseUrl, supabaseAnonKey } = getSupabasePublicConfig();
+  let user: unknown = null;
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabasePublicConfig();
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+            response = NextResponse.next({ request });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options),
+            );
+          },
         },
       },
-    },
-  );
+    );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    const authResult = await supabase.auth.getUser();
+    user = authResult.data.user;
+  } catch {
+    user = null;
+  }
 
   if (!user) {
     const url = request.nextUrl.clone();
@@ -72,3 +77,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };
+
+
+

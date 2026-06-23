@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -14,7 +14,7 @@ export function PortalButton() {
     setLoading(false);
 
     if (!response.ok) {
-      setError(data.error || "Nao foi possível abrir o portal.");
+      setError(data.error || "Não foi possível abrir o portal.");
       return;
     }
 
@@ -35,3 +35,4 @@ export function PortalButton() {
     </div>
   );
 }
+

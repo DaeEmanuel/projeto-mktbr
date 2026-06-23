@@ -12,6 +12,24 @@ function getPaymentMethod(session: Stripe.Checkout.Session) {
   return "Stripe";
 }
 
+function toDate(value?: number | null) {
+  return value ? new Date(value * 1000).toISOString() : null;
+}
+
+function getSubscriptionEndDate(subscription: Stripe.Subscription) {
+  const source = subscription as Stripe.Subscription & { current_period_end?: number | null };
+  return toDate(source.current_period_end || subscription.items.data[0]?.current_period_end || null);
+}
+
+function getSubscriptionStartDate(subscription: Stripe.Subscription) {
+  const source = subscription as Stripe.Subscription & { start_date?: number | null };
+  return toDate(source.start_date || subscription.created || null);
+}
+
+function getSubscriptionPriceId(subscription: Stripe.Subscription) {
+  return subscription.items.data[0]?.price?.id || null;
+}
+
 async function createNotification({
   supabase,
   userId,
@@ -60,6 +78,69 @@ async function notifyAdmins({
       }),
     ),
   );
+}
+
+async function findUserIdForCustomer({
+  supabase,
+  customerId,
+}: {
+  supabase: ReturnType<typeof createAdminClient>;
+  customerId?: string | null;
+}) {
+  if (!customerId) return null;
+
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_customer_id", customerId)
+    .maybeSingle();
+
+  return data?.user_id || null;
+}
+
+async function syncSubscription({
+  supabase,
+  subscription,
+  userId,
+  statusOverride,
+  invoiceId,
+  paymentIntentId,
+}: {
+  supabase: ReturnType<typeof createAdminClient>;
+  subscription: Stripe.Subscription;
+  userId?: string | null;
+  statusOverride?: string;
+  invoiceId?: string | null;
+  paymentIntentId?: string | null;
+}) {
+  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id;
+  const resolvedUserId = userId || subscription.metadata?.user_id || (await findUserIdForCustomer({ supabase, customerId }));
+  const status = statusOverride || subscription.status;
+  const planName = subscription.metadata?.plan_name || "Academia Pro";
+  const startDate = getSubscriptionStartDate(subscription);
+  const endDate = getSubscriptionEndDate(subscription);
+
+  if (!resolvedUserId) return null;
+
+  const payload = {
+    user_id: resolvedUserId,
+    status,
+    plan_name: planName,
+    stripe_customer_id: customerId || null,
+    stripe_subscription_id: subscription.id,
+    current_period_end: endDate,
+    subscription_status: status,
+    subscription_plan: planName,
+    subscription_start_date: startDate,
+    subscription_end_date: endDate,
+    stripe_price_id: getSubscriptionPriceId(subscription),
+    stripe_latest_invoice_id: invoiceId || null,
+    stripe_latest_payment_intent_id: paymentIntentId || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  await supabase.from("subscriptions").upsert(payload, { onConflict: "user_id" });
+  return { userId: resolvedUserId, customerId, endDate, status };
 }
 
 async function confirmBookPurchase({
@@ -219,23 +300,46 @@ async function confirmBookPurchase({
 
 async function confirmSubscriptionPurchase({
   session,
+  stripe,
   supabase,
 }: {
   session: Stripe.Checkout.Session;
+  stripe: Stripe;
   supabase: ReturnType<typeof createAdminClient>;
 }) {
   const userId = session.client_reference_id || session.metadata?.user_id;
   if (!userId) return;
 
   const paidAt = new Date().toISOString();
-  await supabase.from("subscriptions").upsert({
-    user_id: userId,
-    status: "active",
-    plan_name: "Academia Pro",
-    stripe_customer_id: String(session.customer || ""),
-    stripe_subscription_id: String(session.subscription || ""),
-    current_period_end: null,
-  });
+  const subscriptionId = typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+  let synced: Awaited<ReturnType<typeof syncSubscription>> = null;
+
+  if (subscriptionId) {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    synced = await syncSubscription({
+      supabase,
+      subscription,
+      userId,
+      statusOverride: "active",
+    });
+  } else {
+    await supabase.from("subscriptions").upsert(
+      {
+        user_id: userId,
+        status: "active",
+        plan_name: "Academia Pro",
+        stripe_customer_id: String(session.customer || ""),
+        stripe_subscription_id: "",
+        current_period_end: null,
+        subscription_status: "active",
+        subscription_plan: "Academia Pro",
+        subscription_start_date: paidAt,
+        subscription_end_date: null,
+        updated_at: paidAt,
+      },
+      { onConflict: "user_id" },
+    );
+  }
 
   const { data: order } = await supabase
     .from("orders")
@@ -265,9 +369,93 @@ async function confirmSubscriptionPurchase({
     supabase,
     userId,
     title: "Assinatura renovada",
-    body: "Seu plano MKTBR Academia Pro está ativo e seu acesso premium já foi liberado.",
+    body: synced?.endDate
+      ? `Seu plano MKTBR Academia Pro está ativo. Próxima renovação: ${new Date(synced.endDate).toLocaleDateString("pt-BR")}.`
+      : "Seu plano MKTBR Academia Pro está ativo e seu acesso premium já foi liberado.",
     type: "subscription",
     orderId: order?.id || null,
+  });
+}
+
+async function handleInvoicePaid({
+  invoice,
+  stripe,
+  supabase,
+}: {
+  invoice: Stripe.Invoice;
+  stripe: Stripe;
+  supabase: ReturnType<typeof createAdminClient>;
+}) {
+  const invoiceData = invoice as Stripe.Invoice & {
+    subscription?: string | Stripe.Subscription | null;
+    payment_intent?: string | Stripe.PaymentIntent | null;
+  };
+  const subscriptionId = typeof invoiceData.subscription === "string" ? invoiceData.subscription : invoiceData.subscription?.id;
+  const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+
+  if (!subscriptionId) return;
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const synced = await syncSubscription({
+    supabase,
+    subscription,
+    statusOverride: "active",
+    invoiceId: invoice.id,
+    paymentIntentId: typeof invoiceData.payment_intent === "string" ? invoiceData.payment_intent : invoiceData.payment_intent?.id || null,
+  });
+
+  const userId = synced?.userId || (await findUserIdForCustomer({ supabase, customerId }));
+  await createNotification({
+    supabase,
+    userId,
+    title: "Assinatura renovada",
+    body: synced?.endDate
+      ? `Pagamento confirmado. Próxima renovação: ${new Date(synced.endDate).toLocaleDateString("pt-BR")}.`
+      : "Pagamento confirmado. Seu acesso premium está liberado.",
+    type: "subscription",
+  });
+}
+
+async function handleInvoicePaymentFailed({
+  invoice,
+  supabase,
+}: {
+  invoice: Stripe.Invoice;
+  supabase: ReturnType<typeof createAdminClient>;
+}) {
+  const invoiceData = invoice as Stripe.Invoice & { subscription?: string | null };
+  const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+  const userId = await findUserIdForCustomer({ supabase, customerId });
+  const now = new Date().toISOString();
+
+  if (invoiceData.subscription) {
+    await supabase
+      .from("subscriptions")
+      .update({
+        status: "past_due",
+        subscription_status: "past_due",
+        stripe_latest_invoice_id: invoice.id,
+        updated_at: now,
+      })
+      .eq("stripe_subscription_id", invoiceData.subscription);
+  } else if (customerId) {
+    await supabase
+      .from("subscriptions")
+      .update({
+        status: "past_due",
+        subscription_status: "past_due",
+        stripe_latest_invoice_id: invoice.id,
+        updated_at: now,
+      })
+      .eq("stripe_customer_id", customerId);
+  }
+
+  await createNotification({
+    supabase,
+    userId,
+    title: "Pagamento não aprovado",
+    body: "Não foi possível confirmar a renovação da sua assinatura. Atualize o pagamento para manter o acesso premium.",
+    type: "subscription_payment_failed",
   });
 }
 
@@ -300,7 +488,7 @@ export async function POST(request: Request) {
     if (session.metadata?.product === "book") {
       await confirmBookPurchase({ session, supabase });
     } else {
-      await confirmSubscriptionPurchase({ session, supabase });
+      await confirmSubscriptionPurchase({ session, stripe, supabase });
     }
   }
 
@@ -326,23 +514,24 @@ export async function POST(request: Request) {
     );
   }
 
-  if (event.type === "customer.subscription.updated") {
+  if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
     const subscription = event.data.object as Stripe.Subscription;
-    await supabase
-      .from("subscriptions")
-      .update({
-        status: subscription.status,
-        current_period_end: new Date(subscription.items.data[0]?.current_period_end * 1000),
-      })
-      .eq("stripe_subscription_id", subscription.id);
+    await syncSubscription({ supabase, subscription });
   }
 
   if (event.type === "customer.subscription.deleted") {
     const subscription = event.data.object as Stripe.Subscription;
-    await supabase
-      .from("subscriptions")
-      .update({ status: "canceled" })
-      .eq("stripe_subscription_id", subscription.id);
+    await syncSubscription({ supabase, subscription, statusOverride: "canceled" });
+  }
+
+  if (event.type === "invoice.paid") {
+    const invoice = event.data.object as Stripe.Invoice;
+    await handleInvoicePaid({ invoice, stripe, supabase });
+  }
+
+  if (event.type === "invoice.payment_failed") {
+    const invoice = event.data.object as Stripe.Invoice;
+    await handleInvoicePaymentFailed({ invoice, supabase });
   }
 
   return NextResponse.json({ received: true });
