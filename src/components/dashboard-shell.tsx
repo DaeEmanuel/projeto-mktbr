@@ -1,5 +1,6 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import type { ReactNode } from "react";
+import { NotificationBell } from "@/components/notification-bell";
 import { PortalButton } from "@/components/portal-button";
 import { SignOutButton } from "@/components/sign-out-button";
 
@@ -10,6 +11,7 @@ const navigationItems = [
   ["Minha Assinatura", "/dashboard/minha-assinatura"],
   ["Editar Perfil", "/dashboard/perfil"],
   ["Painel do escritor", "/dashboard/escritor"],
+  ["Vendas", "/dashboard/vendas"],
   ["Painel do administrador", "/dashboard/admin"],
   ["Marketplace de livros", "/livros"],
   ["MKTBR Social IA", "/social-ia/dashboard"],
@@ -18,11 +20,29 @@ const navigationItems = [
   ["Admin Bottons", "/admin/bottons"],
 ];
 
-export function getDisplayName(user: {
+type DashboardUser = {
+  id?: string;
   email?: string;
   user_metadata?: { name?: string; full_name?: string; avatar_url?: string };
-}) {
+};
+
+export function getDisplayName(user: DashboardUser) {
   return user.user_metadata?.name || user.user_metadata?.full_name || user.email || "Aluno MKTBR";
+}
+
+function UserAvatar({ displayName, avatarUrl }: { displayName: string; avatarUrl?: string }) {
+  const initial = displayName.charAt(0).toUpperCase();
+
+  if (avatarUrl) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={avatarUrl} alt="" className="size-12 rounded-full object-cover ring-2 ring-[#00c853]" />;
+  }
+
+  return (
+    <span className="grid size-12 place-items-center rounded-full bg-[#00c853] text-sm font-black text-[#05281f]">
+      {initial}
+    </span>
+  );
 }
 
 export function DashboardShell({
@@ -30,18 +50,15 @@ export function DashboardShell({
   subscription,
   children,
 }: {
-  user: {
-    email?: string;
-    user_metadata?: { name?: string; full_name?: string; avatar_url?: string };
-  };
+  user: DashboardUser;
   subscription?: { status?: string | null; plan_name?: string | null } | null;
   children: ReactNode;
 }) {
   const displayName = getDisplayName(user);
   const avatarUrl = user.user_metadata?.avatar_url;
-  const initial = displayName.charAt(0).toUpperCase();
   const planName = subscription?.plan_name || "MKTBR Pro";
   const planStatus = subscription?.status || "pendente";
+  const userId = user.id || "";
 
   return (
     <main className="min-h-screen bg-[#f4f8f3] text-[#061421] lg:pl-80">
@@ -51,7 +68,8 @@ export function DashboardShell({
             <p className="text-xs font-black uppercase tracking-[0.24em] text-[#83f5aa]">MEU PAINEL</p>
             <h1 className="mt-1 text-2xl font-black tracking-normal text-white">Central do Usuário</h1>
           </div>
-          <div className="lg:hidden">
+          <div className="flex items-center gap-2 lg:hidden">
+            {userId ? <NotificationBell userId={userId} /> : null}
             <SignOutButton />
           </div>
         </div>
@@ -59,18 +77,12 @@ export function DashboardShell({
         <div className="hidden px-6 lg:block">
           <div className="rounded-2xl border border-white/10 bg-white/8 p-4 shadow-inner">
             <div className="flex items-center gap-3">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt="" className="size-12 rounded-full object-cover ring-2 ring-[#00c853]" />
-              ) : (
-                <span className="grid size-12 place-items-center rounded-full bg-[#00c853] text-sm font-black text-[#05281f]">
-                  {initial}
-                </span>
-              )}
-              <div className="min-w-0">
+              <UserAvatar displayName={displayName} avatarUrl={avatarUrl} />
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-black text-white">{displayName}</p>
                 <p className="truncate text-xs font-semibold text-white/60">{user.email}</p>
               </div>
+              {userId ? <NotificationBell userId={userId} /> : null}
             </div>
             <div className="mt-4 rounded-xl bg-[#031c16] p-3">
               <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-[#83f5aa]">Área Privada</p>

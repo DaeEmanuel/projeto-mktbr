@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { DashboardShell, getDisplayName } from "@/components/dashboard-shell";
 import { ProfileForm } from "@/components/profile-form";
 import { createClient } from "@/lib/supabase/server";
@@ -25,10 +25,11 @@ export default async function PerfilPage() {
 
   return (
     <DashboardShell user={user} subscription={subscription}>
-      <div className="rounded-lg border border-slate-200 bg-white p-5">
-        <h2 className="text-xl font-black text-[#061421]">Editar Perfil</h2>
-        <p className="mt-2 text-sm leading-6 text-slate-600">
-          Atualize seu nome e a foto exibida no topo da area do aluno.
+      <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#00a843]">Área Privada</p>
+        <h2 className="mt-2 text-2xl font-black text-[#061421]">Editar Perfil</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+          Atualize seu nome e envie uma foto profissional para aparecer no menu lateral do seu painel.
         </p>
         <div className="mt-5 max-w-xl">
           <ProfileForm

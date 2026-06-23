@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { calculateWriterNet, PLATFORM_COMMISSION_CENTS } from "@/lib/money";
+import { calculateWriterNet, formatCurrency, PLATFORM_COMMISSION_CENTS } from "@/lib/money";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 
@@ -10,6 +10,56 @@ function getPaymentMethod(session: Stripe.Checkout.Session) {
   if (method === "boleto") return "Boleto";
   if (method === "pix") return "Pix";
   return "Stripe";
+}
+
+async function createNotification({
+  supabase,
+  userId,
+  title,
+  body,
+  type,
+  orderId,
+}: {
+  supabase: ReturnType<typeof createAdminClient>;
+  userId?: string | null;
+  title: string;
+  body?: string;
+  type: string;
+  orderId?: string | null;
+}) {
+  if (!userId) return;
+
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    title,
+    body: body || null,
+    notification_type: type,
+    related_order_id: orderId || null,
+  });
+}
+
+async function notifyAdmins({
+  supabase,
+  body,
+  orderId,
+}: {
+  supabase: ReturnType<typeof createAdminClient>;
+  body: string;
+  orderId?: string | null;
+}) {
+  const { data: admins } = await supabase.from("users").select("id").eq("role", "admin");
+  await Promise.all(
+    (admins || []).map((admin) =>
+      createNotification({
+        supabase,
+        userId: admin.id,
+        title: "Nova compra confirmada",
+        body,
+        type: "admin_sale",
+        orderId,
+      }),
+    ),
+  );
 }
 
 async function confirmBookPurchase({
@@ -35,6 +85,7 @@ async function confirmBookPurchase({
 
   const buyerEmail = session.customer_details?.email || session.customer_email || null;
   const buyerName = session.customer_details?.name || buyerEmail || "Cliente MKTBR";
+  const productName = book?.title || session.metadata?.product_name || "Ebook MKTBR";
   const paidAt = new Date().toISOString();
 
   const { data: order } = await supabase
@@ -44,7 +95,7 @@ async function confirmBookPurchase({
         buyer_id: buyerId,
         product_id: bookId,
         product_type: "ebook",
-        product_name: book?.title || session.metadata?.product_name || "Ebook MKTBR",
+        product_name: productName,
         author_id: writerId,
         buyer_name: buyerName,
         buyer_email: buyerEmail,
@@ -142,6 +193,27 @@ async function confirmBookPurchase({
       },
       { onConflict: "order_id" },
     );
+
+    const notificationBody = `Produto: ${productName}. Cliente: ${buyerName}. Valor: ${formatCurrency(saleAmountCents)}.`;
+    await Promise.all([
+      createNotification({
+        supabase,
+        userId: writerId,
+        title: "Nova venda realizada",
+        body: notificationBody,
+        type: "sale",
+        orderId: order.id,
+      }),
+      createNotification({
+        supabase,
+        userId: buyerId,
+        title: "Compra aprovada",
+        body: `Seu acesso ao produto ${productName} já foi liberado.`,
+        type: "purchase",
+        orderId: order.id,
+      }),
+      notifyAdmins({ supabase, body: notificationBody, orderId: order.id }),
+    ]);
   }
 }
 
@@ -165,25 +237,38 @@ async function confirmSubscriptionPurchase({
     current_period_end: null,
   });
 
-  await supabase.from("orders").upsert(
-    {
-      buyer_id: userId,
-      product_id: String(session.metadata?.product || "mktbr-academia"),
-      product_type: "assinatura",
-      product_name: "MKTBR Academia Pro",
-      buyer_name: session.customer_details?.name || session.customer_email || "Cliente MKTBR",
-      buyer_email: session.customer_details?.email || session.customer_email || null,
-      amount: session.amount_total || 0,
-      payment_method: getPaymentMethod(session),
-      payment_status: "Pagamento Confirmado",
-      stripe_session_id: session.id,
-      stripe_payment_intent_id:
-        typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id,
-      paid_at: paidAt,
-      updated_at: paidAt,
-    },
-    { onConflict: "stripe_session_id" },
-  );
+  const { data: order } = await supabase
+    .from("orders")
+    .upsert(
+      {
+        buyer_id: userId,
+        product_id: String(session.metadata?.product || "mktbr-academia"),
+        product_type: "assinatura",
+        product_name: "MKTBR Academia Pro",
+        buyer_name: session.customer_details?.name || session.customer_email || "Cliente MKTBR",
+        buyer_email: session.customer_details?.email || session.customer_email || null,
+        amount: session.amount_total || 0,
+        payment_method: getPaymentMethod(session),
+        payment_status: "Pagamento Confirmado",
+        stripe_session_id: session.id,
+        stripe_payment_intent_id:
+          typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id,
+        paid_at: paidAt,
+        updated_at: paidAt,
+      },
+      { onConflict: "stripe_session_id" },
+    )
+    .select("id")
+    .single();
+
+  await createNotification({
+    supabase,
+    userId,
+    title: "Assinatura renovada",
+    body: "Seu plano MKTBR Academia Pro está ativo e seu acesso premium já foi liberado.",
+    type: "subscription",
+    orderId: order?.id || null,
+  });
 }
 
 export async function POST(request: Request) {
@@ -221,10 +306,24 @@ export async function POST(request: Request) {
 
   if (event.type === "payment_intent.succeeded") {
     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    await supabase
+    const { data: orders } = await supabase
       .from("orders")
       .update({ payment_status: "Pagamento Confirmado", updated_at: new Date().toISOString() })
-      .eq("stripe_payment_intent_id", paymentIntent.id);
+      .eq("stripe_payment_intent_id", paymentIntent.id)
+      .select("id, buyer_id, product_name");
+
+    await Promise.all(
+      (orders || []).map((order) =>
+        createNotification({
+          supabase,
+          userId: order.buyer_id,
+          title: "Compra aprovada",
+          body: `Seu acesso ao produto ${order.product_name} já foi liberado.`,
+          type: "purchase",
+          orderId: order.id,
+        }),
+      ),
+    );
   }
 
   if (event.type === "customer.subscription.updated") {

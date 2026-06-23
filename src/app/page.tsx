@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+﻿import { CheckCircle2, Megaphone, MessageCircle, Sparkles, Users } from "lucide-react";
 import { ButtonLink } from "@/components/button-link";
 import { Section } from "@/components/section";
 import { SiteFooter } from "@/components/site-footer";
@@ -21,7 +21,7 @@ export default function Home() {
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/72">
                 Venda cursos online, receba pagamentos por Pix, boleto e cartão e
-                acompanhe o progresso dos seus alunos em um unico lugar.
+                acompanhe o progresso dos seus alunos em um único lugar.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <ButtonLink href="/cadastro">Começar agora</ButtonLink>
@@ -61,9 +61,55 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="bg-[#f4f8f3] px-4 py-10 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-7xl overflow-hidden rounded-[1.75rem] bg-[#05281f] text-white shadow-2xl shadow-[#05281f]/20">
+            <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.05fr_0.95fr] lg:p-10">
+              <div className="flex flex-col justify-center">
+                <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#83f5aa]/25 bg-white/8 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#83f5aa]">
+                  <MessageCircle size={16} />
+                  Canal oficial
+                </div>
+                <h2 className="mt-5 text-3xl font-black leading-tight sm:text-4xl">🚀 Entre no canal oficial do MKTBR.site</h2>
+                <p className="mt-4 max-w-2xl text-base leading-7 text-white/76">
+                  Receba oportunidades, novidades, cursos, e-books, ferramentas de IA e estratégias de marketing digital diretamente no seu WhatsApp.
+                </p>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-white/64">
+                  Fique por dentro das atualizações do MKTBR.site, acompanhe novos conteúdos, ofertas especiais e recursos para crescer no digital.
+                </p>
+                <p className="mt-5 text-lg font-black text-[#83f5aa]">Aprenda, venda e cresça com o MKTBR.site.</p>
+                <a
+                  href="https://whatsapp.com/channel/0029Vb8NF7j6xCSPxNOgc92e"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-[#00c853] px-6 py-3 text-sm font-black text-[#05281f] shadow-lg shadow-[#00c853]/20 transition hover:-translate-y-0.5 hover:bg-[#83f5aa]"
+                >
+                  <MessageCircle size={18} />
+                  Entrar no Canal do WhatsApp
+                </a>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                {[
+                  { title: "IA aplicada", text: "Ideias práticas para acelerar criação, automação e vendas.", icon: Sparkles },
+                  { title: "Marketing digital", text: "Estratégias e ofertas para empreendedores digitais.", icon: Megaphone },
+                  { title: "Comunidade", text: "Novidades para alunos, autores, criadores e vendedores.", icon: Users },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <article key={item.title} className="rounded-2xl border border-white/10 bg-white/8 p-5">
+                      <Icon className="text-[#83f5aa]" size={24} />
+                      <h3 className="mt-4 text-lg font-black">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-white/66">{item.text}</p>
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <Section
           eyebrow="Plataforma"
-          title="Tudo que uma plataformade cursos precisa para começar"
+          title="Tudo que uma plataforma de cursos precisa para começar"
           text="Autenticação, catálogo, assinatura recorrente, dashboard do aluno e banco Supabase independente."
         >
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
