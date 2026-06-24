@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
   title: "Cadastro",
-  description: "Crie sua conta MKTBR Academia.",
+  description: "Crie sua conta MKTBR Site.",
 };
 
 export default function CadastroPage() {

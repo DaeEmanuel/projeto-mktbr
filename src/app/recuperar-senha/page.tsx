@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
   title: "Recuperar senha",
-  description: "Recupere o acesso a sua conta MKTBR Academia.",
+  description: "Recupere o acesso a sua conta MKTBR Site.",
 };
 
 export default function RecuperarSenhaPage() {

@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   return {
     title: book ? `${book.title} | MKTBR Livros` : "Ebook",
-    description: book?.description || "Ebook publicado na MKTBR Academia.",
+    description: book?.description || "Ebook publicado na MKTBR Site.",
   };
 }
 

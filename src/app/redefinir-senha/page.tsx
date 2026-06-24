@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
   title: "Redefinir senha",
-  description: "Crie uma nova senha para acessar a MKTBR Academia.",
+  description: "Crie uma nova senha para acessar a MKTBR Site.",
 };
 
 export default function RedefinirSenhaPage() {

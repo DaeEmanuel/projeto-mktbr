@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
   title: "Boas-vindas",
-  description: "Confirme seu e-mail para acessar a MKTBR Academia.",
+  description: "Confirme seu e-mail para acessar a MKTBR Site.",
 };
 
 export default function BoasVindasPage() {
@@ -14,7 +14,7 @@ export default function BoasVindasPage() {
       <main className="bg-slate-50 px-4 py-16">
         <section className="mx-auto max-w-2xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-black uppercase tracking-wide text-[#00c853]">
-            Bem-vindo a MKTBR Academia
+            Bem-vindo a MKTBR Site
           </p>
           <h1 className="mt-3 text-3xl font-black text-[#061421]">Confirme seu e-mail</h1>
           <p className="mt-3 leading-7 text-slate-600">

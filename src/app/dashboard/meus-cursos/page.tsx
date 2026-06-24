@@ -29,7 +29,7 @@ export default async function MeusCursosPage() {
       <div className="rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="text-xl font-black text-[#061421]">Meus Cursos</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Continue seus estudos e acompanhe os cursos disponiveis na MKTBR Academia.
+          Continue seus estudos e acompanhe os cursos disponiveis na MKTBR Site.
         </p>
         <div className="mt-5 grid gap-4 lg:grid-cols-3">
           {publicCourses.map((course) => (

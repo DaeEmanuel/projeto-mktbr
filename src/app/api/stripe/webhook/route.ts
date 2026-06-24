@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { calculateWriterNet, formatCurrency, PLATFORM_COMMISSION_CENTS } from "@/lib/money";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -348,7 +348,7 @@ async function confirmSubscriptionPurchase({
         buyer_id: userId,
         product_id: String(session.metadata?.product || "mktbr-academia"),
         product_type: "assinatura",
-        product_name: "MKTBR Academia Pro",
+        product_name: "MKTBR Site Pro",
         buyer_name: session.customer_details?.name || session.customer_email || "Cliente MKTBR",
         buyer_email: session.customer_details?.email || session.customer_email || null,
         amount: session.amount_total || 0,
@@ -370,8 +370,8 @@ async function confirmSubscriptionPurchase({
     userId,
     title: "Assinatura renovada",
     body: synced?.endDate
-      ? `Seu plano MKTBR Academia Pro está ativo. Próxima renovação: ${new Date(synced.endDate).toLocaleDateString("pt-BR")}.`
-      : "Seu plano MKTBR Academia Pro está ativo e seu acesso premium já foi liberado.",
+      ? `Seu plano MKTBR Site Pro está ativo. Próxima renovação: ${new Date(synced.endDate).toLocaleDateString("pt-BR")}.`
+      : "Seu plano MKTBR Site Pro está ativo e seu acesso premium já foi liberado.",
     type: "subscription",
     orderId: order?.id || null,
   });

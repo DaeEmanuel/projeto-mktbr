@@ -1,4 +1,4 @@
-# MKTBR Academia
+# MKTBR Site
 
 SaaS independente para cursos online com Next.js, React, TypeScript, Tailwind CSS, Supabase, Vercel e Stripe.
 

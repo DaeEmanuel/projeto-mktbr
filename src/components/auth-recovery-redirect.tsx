@@ -4,16 +4,24 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/browser";
 
-function hasRecoverySignal() {
+function getRecoveryRedirectPath(pathname: string) {
   const url = new URL(window.location.href);
   const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const code = url.searchParams.get("code");
+  const queryType = url.searchParams.get("type");
+  const hashType = hashParams.get("type");
+  const hasHashSession = Boolean(hashParams.get("access_token") && hashParams.get("refresh_token"));
+  const isRecovery = queryType === "recovery" || hashType === "recovery" || hasHashSession;
 
-  return (
-    url.searchParams.get("type") === "recovery" ||
-    hashParams.get("type") === "recovery" ||
-    Boolean(url.searchParams.get("code") && url.searchParams.get("type") === "recovery") ||
-    Boolean(hashParams.get("access_token") && hashParams.get("refresh_token"))
-  );
+  if (code && pathname !== "/auth/callback") {
+    return `/auth/callback?code=${encodeURIComponent(code)}&type=recovery&next=/redefinir-senha`;
+  }
+
+  if (isRecovery && pathname !== "/redefinir-senha") {
+    return `/redefinir-senha${window.location.search}${window.location.hash}`;
+  }
+
+  return null;
 }
 
 export function AuthRecoveryRedirect() {
@@ -23,15 +31,9 @@ export function AuthRecoveryRedirect() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const sendToRecoveryPage = () => {
-      if (pathname === "/redefinir-senha") return;
-
-      const nextUrl = `/redefinir-senha${window.location.search}${window.location.hash}`;
-      window.location.replace(nextUrl);
-    };
-
-    if (hasRecoverySignal()) {
-      sendToRecoveryPage();
+    const recoveryPath = getRecoveryRedirectPath(pathname);
+    if (recoveryPath) {
+      window.location.replace(recoveryPath);
       return;
     }
 

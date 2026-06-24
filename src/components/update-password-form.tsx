@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -26,9 +26,8 @@ export function UpdatePasswordForm() {
         const refreshToken = hashParams.get("refresh_token");
 
         if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) throw error;
-          window.history.replaceState({}, document.title, "/redefinir-senha");
+          window.location.replace(`/auth/callback?code=${encodeURIComponent(code)}&type=recovery&next=/redefinir-senha`);
+          return;
         } else if (accessToken && refreshToken) {
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,

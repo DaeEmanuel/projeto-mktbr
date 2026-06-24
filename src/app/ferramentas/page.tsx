@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
-  title: "Ferramentas | MKTBR Academia",
+  title: "Ferramentas | MKTBR Site",
   description: "Ferramentas de IA e automacao para criadores, autores e infoprodutores.",
 };
 

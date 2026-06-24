@@ -1,4 +1,4 @@
-﻿import { CheckCircle2, Megaphone, MessageCircle, Sparkles, Users } from "lucide-react";
+import { CheckCircle2, Megaphone, MessageCircle, Sparkles, Users } from "lucide-react";
 import { ButtonLink } from "@/components/button-link";
 import { Section } from "@/components/section";
 import { SiteFooter } from "@/components/site-footer";
@@ -17,7 +17,7 @@ export default function Home() {
                 {site.slogan}
               </p>
               <h1 className="mt-5 max-w-4xl text-4xl font-black tracking-tight sm:text-6xl">
-                MKTBR Academia — Cursos online para negócios que querem vender mais
+                MKTBR Site — Cursos online para negócios que querem vender mais
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-white/72">
                 Venda cursos online, receba pagamentos por Pix, boleto e cartão e

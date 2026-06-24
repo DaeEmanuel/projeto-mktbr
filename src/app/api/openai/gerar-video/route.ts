@@ -86,7 +86,7 @@ export async function POST(request: Request) {
           {
             role: "system",
             content:
-              "Voce e um estrategista de conteudo para TikTok da MKTBR Academia. Responda somente em JSON valido, em portugues do Brasil, sem markdown.",
+              "Voce e um estrategista de conteudo para TikTok da MKTBR Site. Responda somente em JSON valido, em portugues do Brasil, sem markdown.",
           },
           {
             role: "user",

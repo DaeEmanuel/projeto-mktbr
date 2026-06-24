@@ -25,7 +25,7 @@ const proStripeUrl = "https://buy.stripe.com/14A14o3GMaXbcrZ20n9EI01";
 
 export const metadata = {
   title: "Planos",
-  description: "Assine a MKTBR Academia com Stripe.",
+  description: "Assine a MKTBR Site com Stripe.",
 };
 
 export default function PlanosPage() {
@@ -34,7 +34,7 @@ export default function PlanosPage() {
       <SiteHeader />
       <Section
         eyebrow="Assinatura"
-        title="Planos MKTBR Academia"
+        title="Planos MKTBR Site"
         text="Escolha o plano ideal para vender cursos online, acompanhar alunos e crescer com pagamentos via Stripe."
       >
         <div className="grid gap-6 lg:grid-cols-2">
@@ -72,7 +72,7 @@ export default function PlanosPage() {
               ⭐ MAIS POPULAR
             </div>
             <div className="rounded-lg border-4 border-[#00c853] bg-white p-6 shadow-2xl shadow-[#00c853]/20">
-              <h2 className="mt-5 text-3xl font-black">MKTBR Academia Pro</h2>
+              <h2 className="mt-5 text-3xl font-black">MKTBR Site Pro</h2>
               <p className="mt-3">
                 <span className="text-5xl font-black">R$ 49,90</span>
                 <span className="text-slate-500"> por mes</span>
