@@ -1,7 +1,9 @@
-﻿import DashboardPage from "../dashboard/page";
+﻿import { MemberDashboard } from "@/components/member-dashboard";
 
 export const metadata = {
   title: "Meu Painel",
 };
 
-export default DashboardPage;
+export default function MeuPainelPage() {
+  return <MemberDashboard />;
+}
