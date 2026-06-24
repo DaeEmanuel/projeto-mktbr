@@ -12,81 +12,81 @@ const memberTabs = [
     id: "vitrine",
     label: "Vitrine Premium",
     title: "Cursos organizados para vender mais",
-    text: "Apresente aulas, produtos digitais e jornadas de aprendizado com uma vitrine clara, elegante e pronta para conversÃ£o.",
+    text: "Apresente aulas, produtos digitais e jornadas de aprendizado com uma vitrine clara, elegante e pronta para conversão.",
     icon: Gem,
-    benefits: ["CatÃ¡logo visual de cursos", "Destaques para lanÃ§amentos", "ExperiÃªncia premium para novos alunos"],
+    benefits: ["Catálogo visual de cursos", "Destaques para lançamentos", "Experiência premium para novos alunos"],
   },
   {
     id: "player",
-    label: "Player de vÃ­deo",
-    title: "Aulas com foco e retenÃ§Ã£o",
-    text: "Centralize vÃ­deos, mÃ³dulos e materiais em uma experiÃªncia limpa para o aluno continuar de onde parou.",
+    label: "Player de vídeo",
+    title: "Aulas com foco e retenção",
+    text: "Centralize vídeos, módulos e materiais em uma experiência limpa para o aluno continuar de onde parou.",
     icon: PlayCircle,
-    benefits: ["Player organizado por mÃ³dulos", "Acesso privado aos conteÃºdos", "Ambiente seguro para assistir aulas"],
+    benefits: ["Player organizado por módulos", "Acesso privado aos conteúdos", "Ambiente seguro para assistir aulas"],
   },
   {
     id: "webinarios",
-    label: "WebinÃ¡rios",
+    label: "Webinários",
     title: "Eventos ao vivo para engajar e vender",
-    text: "Planeje encontros, mentorias e aulas especiais para aproximar sua audiÃªncia e acelerar decisÃµes de compra.",
+    text: "Planeje encontros, mentorias e aulas especiais para aproximar sua audiência e acelerar decisões de compra.",
     icon: Radio,
-    benefits: ["Agenda de transmissÃµes", "Chamadas para inscriÃ§Ã£o", "Relacionamento em tempo real"],
+    benefits: ["Agenda de transmissões", "Chamadas para inscrição", "Relacionamento em tempo real"],
   },
   {
     id: "desafios",
-    label: "Desafios e gamificaÃ§Ã£o",
-    title: "MotivaÃ§Ã£o contÃ­nua para alunos ativos",
+    label: "Desafios e gamificação",
+    title: "Motivação contínua para alunos ativos",
     text: "Use desafios, metas e conquistas para manter a comunidade engajada durante toda a jornada.",
     icon: Trophy,
-    benefits: ["MissÃµes por etapa", "Reconhecimento de progresso", "Mais participaÃ§Ã£o da comunidade"],
+    benefits: ["Missões por etapa", "Reconhecimento de progresso", "Mais participação da comunidade"],
   },
   {
     id: "comunidade",
     label: "Feed Comunidade",
-    title: "Um espaÃ§o vivo para relacionamento",
-    text: "ReÃºna conversas, atualizaÃ§Ãµes e conteÃºdos de bastidores em uma Ã¡rea privada com sensaÃ§Ã£o de comunidade.",
+    title: "Um espaço vivo para relacionamento",
+    text: "Reúna conversas, atualizações e conteúdos de bastidores em uma área privada com sensação de comunidade.",
     icon: Users,
-    benefits: ["PublicaÃ§Ãµes para membros", "InteraÃ§Ã£o recorrente", "Pertencimento e retenÃ§Ã£o"],
+    benefits: ["Publicações para membros", "Interação recorrente", "Pertencimento e retenção"],
   },
   {
     id: "videos",
-    label: "Feed de vÃ­deos",
-    title: "ConteÃºdos rÃ¡pidos para manter presenÃ§a",
-    text: "Distribua vÃ­deos curtos, avisos e pÃ­lulas de conteÃºdo em formato simples de consumir.",
+    label: "Feed de vídeos",
+    title: "Conteúdos rápidos para manter presença",
+    text: "Distribua vídeos curtos, avisos e pílulas de conteúdo em formato simples de consumir.",
     icon: Video,
-    benefits: ["ConteÃºdo em sequÃªncia", "Destaques por campanha", "Mais frequÃªncia de contato"],
+    benefits: ["Conteúdo em sequência", "Destaques por campanha", "Mais frequência de contato"],
   },
   {
     id: "notificacoes",
-    label: "NotificaÃ§Ãµes",
-    title: "ComunicaÃ§Ã£o que nÃ£o se perde",
+    label: "Notificações",
+    title: "Comunicação que não se perde",
     text: "Organize avisos importantes para manter alunos e compradores informados nos momentos certos.",
     icon: Bell,
-    benefits: ["Alertas para novidades", "Avisos comerciais", "ComunicaÃ§Ã£o centralizada"],
+    benefits: ["Alertas para novidades", "Avisos comerciais", "Comunicação centralizada"],
   },
   {
     id: "dashboard",
     label: "Dashboard",
     title: "Indicadores claros para decidir melhor",
-    text: "Acompanhe o desempenho da sua operaÃ§Ã£o digital sem termos tÃ©cnicos ou confusÃ£o visual.",
+    text: "Acompanhe o desempenho da sua operação digital sem termos técnicos ou confusão visual.",
     icon: BarChart3,
-    benefits: ["VisÃ£o de crescimento", "Dados protegidos", "Leitura rÃ¡pida dos resultados"],
+    benefits: ["Visão de crescimento", "Dados protegidos", "Leitura rápida dos resultados"],
   },
   {
     id: "ia",
     label: "Gerente IA",
-    title: "AssistÃªncia inteligente para crescer com rotina",
-    text: "Use recursos de inteligÃªncia para transformar ideias, campanhas e comunicaÃ§Ã£o em aÃ§Ãµes mais previsÃ­veis.",
+    title: "Assistência inteligente para crescer com rotina",
+    text: "Use recursos de inteligência para transformar ideias, campanhas e comunicação em ações mais previsíveis.",
     icon: Bot,
-    benefits: ["SugestÃµes de conteÃºdo", "Apoio para campanhas", "ComunicaÃ§Ã£o mais consistente"],
+    benefits: ["Sugestões de conteúdo", "Apoio para campanhas", "Comunicação mais consistente"],
   },
   {
     id: "email",
     label: "E-mail Marketing",
     title: "Relacionamento recorrente com sua base",
-    text: "Planeje mensagens, ofertas e sequÃªncias para manter sua audiÃªncia prÃ³xima da prÃ³xima compra.",
+    text: "Planeje mensagens, ofertas e sequências para manter sua audiência próxima da próxima compra.",
     icon: Mail,
-    benefits: ["Campanhas para alunos", "SequÃªncias de venda", "AtivaÃ§Ã£o de compradores"],
+    benefits: ["Campanhas para alunos", "Sequências de venda", "Ativação de compradores"],
   },
 ];
 
@@ -163,19 +163,19 @@ export async function MemberDashboard() {
       ) : null}
       {latestConfirmedOrder ? (
         <div className="rounded-[1.25rem] border border-[#00c853]/40 bg-[#00c853]/10 p-4 text-sm font-black text-[#05281f] shadow-sm">
-          Compra confirmada com sucesso! Seu acesso a {latestConfirmedOrder.product_name} jÃ¡ foi liberado.
+          Compra confirmada com sucesso! Seu acesso a {latestConfirmedOrder.product_name} já foi liberado.
         </div>
       ) : null}
 
       <section className="overflow-hidden rounded-[1.75rem] bg-[#05281f] text-white shadow-2xl">
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:p-10">
           <div className="flex flex-col justify-center">
-            <p className="text-xs font-black uppercase tracking-[0.24em] text-[#83f5aa]">Ãrea de membros premium</p>
+            <p className="text-xs font-black uppercase tracking-[0.24em] text-[#83f5aa]">Área de membros premium</p>
             <h2 className="mt-4 max-w-3xl text-3xl font-black leading-tight sm:text-5xl">
-              Da experiÃªncia do aluno ao crescimento previsÃ­vel.
+              Da experiência do aluno ao crescimento previsível.
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
-              Estruture conteÃºdo, comunidade e comunicaÃ§Ã£o em um Ãºnico ecossistema que transforma engajamento em vendas recorrentes.
+              Estruture conteúdo, comunidade e comunicação em um único ecossistema que transforma engajamento em vendas recorrentes.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/dashboard/meus-cursos" className="rounded-full bg-[#00c853] px-5 py-3 text-sm font-black text-[#05281f]">
@@ -258,7 +258,7 @@ export async function MemberDashboard() {
                   <div className="grid min-h-56 place-items-center rounded-[1.25rem] bg-[#05281f] p-5 text-center text-white">
                     <Sparkles size={34} className="text-[#83f5aa]" />
                     <p className="mt-4 text-lg font-black">Mockup MKTBR</p>
-                    <p className="mt-2 text-sm leading-6 text-white/65">EspaÃ§o visual para imagem, player ou demonstraÃ§Ã£o da aba.</p>
+                    <p className="mt-2 text-sm leading-6 text-white/65">Espaço visual para imagem, player ou demonstração da aba.</p>
                   </div>
                 </article>
               );
@@ -271,7 +271,7 @@ export async function MemberDashboard() {
         <div className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00a843]">ConteÃºdo</p>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00a843]">Conteúdo</p>
               <h2 className="mt-1 text-2xl font-black text-[#061421]">Meus cursos</h2>
             </div>
             <Link href="/dashboard/meus-cursos" className="text-sm font-black text-[#128C3E]">Ver todos</Link>
@@ -291,13 +291,13 @@ export async function MemberDashboard() {
         </div>
 
         <div className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00a843]">PrÃ³ximas aulas</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00a843]">Próximas aulas</p>
           <h2 className="mt-1 text-2xl font-black text-[#061421]">Roteiro de progresso</h2>
           <div className="mt-5 grid gap-3">
             {courseModules.map((module) => (
               <div key={module.title} className="rounded-2xl bg-[#f4f8f3] p-4">
                 <p className="font-black text-[#061421]">{module.title}</p>
-                <p className="mt-1 text-sm font-semibold text-slate-600">{module.lessons.length} aulas disponÃ­veis</p>
+                <p className="mt-1 text-sm font-semibold text-slate-600">{module.lessons.length} aulas disponíveis</p>
               </div>
             ))}
           </div>

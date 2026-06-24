@@ -63,7 +63,7 @@ export function DashboardShell({
 
   return (
     <main className="min-h-screen bg-[#f4f8f3] text-[#061421] lg:pl-80">
-      <aside className="border-b border-white/10 bg-[#05281f] text-white shadow-2xl lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-80 lg:flex-col lg:border-b-0 lg:border-r lg:border-white/10">
+      <aside className="border-b border-white/10 bg-[#05281f] text-white shadow-2xl lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:h-screen lg:max-h-screen lg:w-80 lg:flex-col lg:overflow-y-auto lg:overflow-x-hidden lg:border-b-0 lg:border-r lg:border-white/10">
         <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:block lg:p-6">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.24em] text-[#83f5aa]">MEU PAINEL</p>
@@ -131,4 +131,5 @@ export function DashboardShell({
     </main>
   );
 }
+
 

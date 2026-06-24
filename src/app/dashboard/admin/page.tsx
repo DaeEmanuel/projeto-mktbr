@@ -1,246 +1,67 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Bell, BookOpen, CreditCard, FileText, Home, ImageIcon, LayoutDashboard, Settings, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { formatCurrency } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Painel Administrativo" };
 
-type Sale = {
-  id: string;
-  book_id: string;
-  writer_id: string;
-  sale_amount_cents: number;
-  platform_commission_cents: number;
-  writer_net_cents: number;
-  buyer_email: string | null;
-  sold_at: string;
-  books?: { title: string | null } | null;
-};
+type UserRow = { id: string; name: string | null; email: string | null; role: string | null; created_at: string | null };
+type CourseRow = { id: string; title: string | null; level: string | null; published: boolean | null; featured?: boolean | null };
+type BookRow = { id: string; writer_id: string | null; title: string | null; price_cents: number | null; published: boolean | null; status?: string | null; featured?: boolean | null };
+type OrderRow = { id: string; purchase_code: string | null; product_name: string | null; buyer_email: string | null; author_id: string | null; amount: number | null; payment_method: string | null; payment_status: string | null; created_at: string | null; paid_at: string | null };
+type SaleRow = { id: string; writer_id: string | null; platform_commission_cents: number | null; writer_net_cents: number | null; sale_amount_cents: number | null };
+type BannerRow = { id: string; title: string | null; position: string | null; active: boolean | null; featured: boolean | null };
+type NotificationRow = { id: string; title: string | null; message: string | null; notification_type: string | null; created_at: string | null };
 
-type Payout = {
-  id: string;
-  writer_id: string;
-  amount_cents: number;
-  status: string;
-  payout_reference: string | null;
-  created_at: string;
-};
-
-type Order = {
-  id: string;
-  purchase_code: string;
-  product_name: string;
-  author_id: string | null;
-  amount: number;
-  payment_status: string;
-  paid_at: string | null;
-  created_at: string;
-};
-
-export const metadata = {
-  title: "Painel Administrativo",
-};
+const tabs = [["dashboard", "Dashboard", LayoutDashboard], ["home", "Home", Home], ["cursos", "Cursos", BookOpen], ["ebooks", "E-books", FileText], ["usuarios", "Usuários", Users], ["escritores", "Escritores", UserCheck], ["compras", "Compras", CreditCard], ["banners", "Banners", ImageIcon], ["configuracoes", "Configurações", Settings], ["notificacoes", "Notificações", Bell]] as const;
+async function safeList<T>(query: PromiseLike<{ data: unknown; error: unknown }>) { try { const result = await query; return result.error ? [] as T[] : (result.data || []) as T[]; } catch { return [] as T[]; } }
+function EmptyState({ text }: { text: string }) { return <p className="rounded-xl bg-slate-50 p-4 text-sm font-bold text-slate-500">{text}</p>; }
+function StatCard({ label, value }: { label: string; value: string }) { return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-xs font-black uppercase tracking-[0.16em] text-slate-500">{label}</p><p className="mt-3 text-2xl font-black text-[#061421]">{value}</p></div>; }
+function AdminActionButton({ children }: { children: React.ReactNode }) { return <button type="button" className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-black text-[#061421]">{children}</button>; }
+function AccessDenied() { return <main className="grid min-h-screen place-items-center bg-slate-50 px-4"><section className="max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm"><ShieldCheck className="mx-auto text-[#00a843]" size={34} /><h1 className="mt-4 text-2xl font-black text-[#061421]">Acesso administrativo</h1><p className="mt-3 text-slate-600">Apenas usuários com role admin podem acessar este painel.</p><Link href="/meu-painel" className="mt-5 inline-flex min-h-11 items-center rounded-md bg-[#061421] px-4 text-sm font-black text-white">Voltar ao painel</Link></section></main>; }
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login?redirect=/dashboard/admin");
+  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).maybeSingle();
+  if (profile?.role !== "admin") return <AccessDenied />;
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin") {
-    return (
-      <main className="grid min-h-screen place-items-center bg-slate-50 px-4">
-        <section className="max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center">
-          <h1 className="text-2xl font-black text-[#061421]">Acesso administrativo</h1>
-          <p className="mt-3 text-slate-600">
-            Apenas usuarios com role admin podem acessar este painel.
-          </p>
-          <Link
-            href="/dashboard"
-            className="mt-5 inline-flex min-h-11 items-center rounded-md bg-[#061421] px-4 text-sm font-black text-white"
-          >
-            Voltar
-          </Link>
-        </section>
-      </main>
-    );
-  }
-
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
-
-  const [{ data: salesData }, { data: payoutsData }, { data: ordersData }] = await Promise.all([
-    supabase
-      .from("book_sales")
-      .select(
-        "id, book_id, writer_id, sale_amount_cents, platform_commission_cents, writer_net_cents, buyer_email, sold_at, books(title)",
-      )
-      .order("sold_at", { ascending: false }),
-    supabase
-      .from("writer_payouts")
-      .select("id, writer_id, amount_cents, status, payout_reference, created_at")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("orders")
-      .select("id, purchase_code, product_name, author_id, amount, payment_status, paid_at, created_at")
-      .eq("payment_status", "Pagamento Confirmado")
-      .order("created_at", { ascending: false })
-      .limit(50),
+  const [users, courses, books, orders, sales, banners, notifications] = await Promise.all([
+    safeList<UserRow>(supabase.from("users").select("id, name, email, role, created_at").order("created_at", { ascending: false }).limit(80)),
+    safeList<CourseRow>(supabase.from("courses").select("id, title, level, published, featured").order("created_at", { ascending: false }).limit(80)),
+    safeList<BookRow>(supabase.from("books").select("id, writer_id, title, price_cents, published, status, featured").order("created_at", { ascending: false }).limit(80)),
+    safeList<OrderRow>(supabase.from("orders").select("id, purchase_code, product_name, buyer_email, author_id, amount, payment_method, payment_status, created_at, paid_at").order("created_at", { ascending: false }).limit(80)),
+    safeList<SaleRow>(supabase.from("book_sales").select("id, writer_id, platform_commission_cents, writer_net_cents, sale_amount_cents").limit(80)),
+    safeList<BannerRow>(supabase.from("banners").select("id, title, position, active, featured").order("display_order", { ascending: true }).limit(80)),
+    safeList<NotificationRow>(supabase.from("admin_notifications").select("id, title, message, notification_type, created_at").order("created_at", { ascending: false }).limit(50)),
   ]);
+  const authors = users.filter((item) => item.role === "author" || item.role === "admin");
+  const paidOrders = orders.filter((order) => order.payment_status === "Pagamento Confirmado" || order.payment_status === "paid");
+  const todayOrders = paidOrders.filter((order) => new Date(order.paid_at || order.created_at || 0) >= todayStart);
+  const monthOrders = paidOrders.filter((order) => new Date(order.paid_at || order.created_at || 0) >= monthStart);
+  const dailyRevenue = todayOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
+  const monthlyRevenue = monthOrders.reduce((sum, order) => sum + (order.amount || 0), 0);
+  const totalCommissions = sales.reduce((sum, sale) => sum + (sale.platform_commission_cents || 0), 0);
+  const latestOrder = paidOrders[0];
+  const stats = [["Total de usuários", users.length.toString()], ["Autores/escritores", authors.length.toString()], ["Total de cursos", courses.length.toString()], ["Total de livros/e-books", books.length.toString()], ["Total de vendas", paidOrders.length.toString()], ["Comissões MKTBR", formatCurrency(totalCommissions)], ["Receita mensal", formatCurrency(monthlyRevenue)], ["Faturamento do dia", formatCurrency(dailyRevenue)]];
 
-  const sales = (salesData || []) as unknown as Sale[];
-  const payouts = (payoutsData || []) as unknown as Payout[];
-  const orders = (ordersData || []) as unknown as Order[];
-  const salesToday = orders.filter((order) => new Date(order.paid_at || order.created_at) >= todayStart);
-  const monthOrders = orders.filter((order) => new Date(order.paid_at || order.created_at) >= monthStart);
-  const dailyRevenue = salesToday.reduce((sum, order) => sum + order.amount, 0);
-  const monthlyRevenue = monthOrders.reduce((sum, order) => sum + order.amount, 0);
-  const latestOrder = orders[0];
-  const totalCommissions = sales.reduce(
-    (sum, sale) => sum + sale.platform_commission_cents,
-    0,
-  );
-
-  const bookCounts = [...sales.reduce((map, sale) => {
-    const title = sale.books?.title || sale.book_id;
-    map.set(title, (map.get(title) || 0) + 1);
-    return map;
-  }, new Map<string, number>())].sort((a, b) => b[1] - a[1]);
-
-  const writerTotals = [...sales.reduce((map, sale) => {
-    map.set(sale.writer_id, (map.get(sale.writer_id) || 0) + sale.sale_amount_cents);
-    return map;
-  }, new Map<string, number>())].sort((a, b) => b[1] - a[1]);
-
-  const metrics = [
-    { label: "Total arrecadado em comissoes", value: formatCurrency(totalCommissions) },
-    { label: "Vendas hoje", value: String(salesToday.length) },
-    { label: "Faturamento do dia", value: formatCurrency(dailyRevenue) },
-    { label: "Receita mensal", value: formatCurrency(monthlyRevenue) },
-  ];
-
-  return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div>
-            <p className="text-sm font-black uppercase tracking-wide text-[#00c853]">Admin</p>
-            <h1 className="text-2xl font-black text-[#061421]">Painel do administrador</h1>
-          </div>
-          <Link href="/dashboard" className="rounded-md bg-[#061421] px-4 py-2 text-sm font-bold text-white">
-            Dashboard
-          </Link>
-        </div>
-      </header>
-
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-4 md:grid-cols-4">
-          {metrics.map((metric) => (
-            <div key={metric.label} className="rounded-lg border border-slate-200 bg-white p-5">
-              <p className="text-sm font-bold text-slate-500">{metric.label}</p>
-              <p className="mt-3 text-2xl font-black text-[#061421]">{metric.value}</p>
-            </div>
-          ))}
-        </div>
-
-
-        <section className="rounded-lg border border-[#00c853]/30 bg-[#00c853]/10 p-5">
-          <p className="text-xs font-black uppercase tracking-wide text-[#128C3E]">Novas Compras</p>
-          <h2 className="mt-1 text-xl font-black text-[#061421]">Resumo de confirmações automáticas</h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-4">
-            <div className="rounded-md bg-white p-4"><p className="text-sm font-bold text-slate-500">Vendas hoje</p><p className="mt-2 text-2xl font-black">{salesToday.length}</p></div>
-            <div className="rounded-md bg-white p-4"><p className="text-sm font-bold text-slate-500">Faturamento do dia</p><p className="mt-2 text-2xl font-black">{formatCurrency(dailyRevenue)}</p></div>
-            <div className="rounded-md bg-white p-4"><p className="text-sm font-bold text-slate-500">Última venda</p><p className="mt-2 text-sm font-black">{latestOrder?.product_name || "Nenhuma venda"}</p></div>
-            <div className="rounded-md bg-white p-4"><p className="text-sm font-bold text-slate-500">Autor responsável</p><p className="mt-2 truncate text-sm font-black">{latestOrder?.author_id || "-"}</p></div>
-          </div>
-        </section>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-lg border border-slate-200 bg-white p-5">
-            <h2 className="text-xl font-black text-[#061421]">Livros mais vendidos</h2>
-            <div className="mt-4 grid gap-3">
-              {bookCounts.map(([title, count]) => (
-                <div key={title} className="flex justify-between rounded-md bg-slate-50 p-4">
-                  <span className="font-bold">{title}</span>
-                  <span>{count} vendas</span>
-                </div>
-              ))}
-              {bookCounts.length === 0 ? <p className="text-sm text-slate-500">Sem vendas.</p> : null}
-            </div>
-          </section>
-
-          <section className="rounded-lg border border-slate-200 bg-white p-5">
-            <h2 className="text-xl font-black text-[#061421]">Escritores mais vendidos</h2>
-            <div className="mt-4 grid gap-3">
-              {writerTotals.map(([writerId, total]) => (
-                <div key={writerId} className="rounded-md bg-slate-50 p-4">
-                  <p className="font-bold">{writerId}</p>
-                  <p className="text-sm text-slate-600">{formatCurrency(total)} vendidos</p>
-                </div>
-              ))}
-              {writerTotals.length === 0 ? <p className="text-sm text-slate-500">Sem vendas.</p> : null}
-            </div>
-          </section>
-        </div>
-
-        <section className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="text-xl font-black text-[#061421]">Relatorio financeiro</h2>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="text-slate-500">
-                <tr>
-                  <th className="py-3">Livro</th>
-                  <th>Comprador</th>
-                  <th>Venda</th>
-                  <th>Comissao MKTBR</th>
-                  <th>Liquido escritor</th>
-                  <th>Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sales.map((sale) => (
-                  <tr key={sale.id} className="border-t border-slate-100">
-                    <td className="py-3 font-bold">{sale.books?.title || "Livro"}</td>
-                    <td>{sale.buyer_email || "Comprador"}</td>
-                    <td>{formatCurrency(sale.sale_amount_cents)}</td>
-                    <td>{formatCurrency(sale.platform_commission_cents)}</td>
-                    <td>{formatCurrency(sale.writer_net_cents)}</td>
-                    <td>{new Date(sale.sold_at).toLocaleDateString("pt-BR")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {sales.length === 0 ? <p className="py-4 text-sm text-slate-500">Sem vendas.</p> : null}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-slate-200 bg-white p-5">
-          <h2 className="text-xl font-black text-[#061421]">Controle de repasses</h2>
-          <div className="mt-4 grid gap-3">
-            {payouts.map((payout) => (
-              <div key={payout.id} className="rounded-md bg-slate-50 p-4">
-                <p className="font-black">{formatCurrency(payout.amount_cents)}</p>
-                <p className="text-sm text-slate-600">
-                  Escritor: {payout.writer_id} - Status: {payout.status}
-                </p>
-              </div>
-            ))}
-            {payouts.length === 0 ? (
-              <p className="text-sm text-slate-500">Nenhum repasse registrado.</p>
-            ) : null}
-          </div>
-        </section>
-      </div>
-    </main>
-  );
+  return <main className="min-h-screen bg-[#f4f8f3] text-[#061421]"><header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8"><div><p className="text-xs font-black uppercase tracking-[0.22em] text-[#00a843]">Admin MKTBR Site</p><h1 className="text-3xl font-black">Central administrativa</h1><p className="mt-1 text-sm font-semibold text-slate-600">Gestão de conteúdo, vendas, usuários, banners, notificações e configurações.</p></div><Link href="/meu-painel" className="rounded-lg bg-[#061421] px-4 py-3 text-sm font-black text-white">Meu Painel</Link></div></header><div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">{tabs.map(([id, label, Icon]) => <a key={id} href={`#${id}`} className="inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-black text-slate-700 hover:bg-[#00c853]/10"><Icon size={16} />{label}</a>)}</nav>
+    <section id="dashboard" className="grid gap-5 scroll-mt-6"><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{stats.map(([label, value]) => <StatCard key={label} label={label} value={value} />)}</div><div className="grid gap-4 lg:grid-cols-3"><StatCard label="Vendas do dia" value={todayOrders.length.toString()} /><StatCard label="Última venda" value={latestOrder?.product_name || "Nenhuma"} /><StatCard label="Autor da última venda" value={latestOrder?.author_id || "-"} /></div></section>
+    <section id="home" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm scroll-mt-6"><h2 className="text-2xl font-black">Gestão da Home</h2><p className="mt-2 text-sm text-slate-600">Campos previstos para título principal, subtítulo, botão, banner, destaques, textos institucionais e chamadas comerciais.</p><div className="mt-4 flex flex-wrap gap-2"><AdminActionButton>Editar título</AdminActionButton><AdminActionButton>Editar banner</AdminActionButton><AdminActionButton>Destacar cursos e e-books</AdminActionButton></div></section>
+    <section id="cursos" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm scroll-mt-6"><h2 className="text-2xl font-black">Gestão de Cursos</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="text-slate-500"><tr><th className="py-3">Curso</th><th>Nível</th><th>Status</th><th>Destaque</th><th>Ações</th></tr></thead><tbody>{courses.map((course) => <tr key={course.id} className="border-t border-slate-100"><td className="py-3 font-black">{course.title}</td><td>{course.level}</td><td>{course.published ? "Ativo" : "Inativo"}</td><td>{course.featured ? "Sim" : "Não"}</td><td><AdminActionButton>Editar</AdminActionButton></td></tr>)}</tbody></table>{courses.length === 0 ? <EmptyState text="Nenhum curso cadastrado." /> : null}</div></section>
+    <section id="ebooks" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm scroll-mt-6"><h2 className="text-2xl font-black">Gestão de E-books/Livros</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-left text-sm"><thead className="text-slate-500"><tr><th className="py-3">Livro</th><th>Autor</th><th>Preço</th><th>Status</th><th>Venda</th><th>Ações</th></tr></thead><tbody>{books.map((book) => <tr key={book.id} className="border-t border-slate-100"><td className="py-3 font-black">{book.title}</td><td className="max-w-40 truncate">{book.writer_id}</td><td>{formatCurrency(book.price_cents || 0)}</td><td>{book.status || "em análise"}</td><td>{book.published ? "Ativa" : "Inativa"}</td><td><AdminActionButton>Aprovar/Editar</AdminActionButton></td></tr>)}</tbody></table>{books.length === 0 ? <EmptyState text="Nenhum livro enviado." /> : null}</div></section>
+    <section id="usuarios" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm scroll-mt-6"><h2 className="text-2xl font-black">Gestão de Usuários</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="text-slate-500"><tr><th className="py-3">Nome</th><th>E-mail</th><th>Role</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody>{users.map((item) => <tr key={item.id} className="border-t border-slate-100"><td className="py-3 font-black">{item.name || "-"}</td><td>{item.email}</td><td>{item.role || "user"}</td><td>{item.created_at ? new Date(item.created_at).toLocaleDateString("pt-BR") : "-"}</td><td><AdminActionButton>Alterar role</AdminActionButton></td></tr>)}</tbody></table>{users.length === 0 ? <EmptyState text="Nenhum usuário listado. Verifique as policies administrativas." /> : null}</div></section>
+    <section id="escritores" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm scroll-mt-6"><h2 className="text-2xl font-black">Gestão de Autores/Escritores</h2><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{authors.map((author) => { const authorBooks = books.filter((book) => book.writer_id === author.id); const authorSales = sales.filter((sale) => sale.writer_id === author.id); const authorNet = authorSales.reduce((sum, sale) => sum + (sale.writer_net_cents || 0), 0); return <article key={author.id} className="rounded-2xl bg-slate-50 p-4"><p className="font-black">{author.name || author.email}</p><p className="text-sm text-slate-600">{authorBooks.length} livros enviados</p><p className="text-sm text-slate-600">{authorSales.length} vendas</p><p className="text-sm font-black text-[#128C3E]">Líquido: {formatCurrency(authorNet)}</p></article>; })}{authors.length === 0 ? <EmptyState text="Nenhum autor encontrado." /> : null}</div></section>
+    <section id="compras" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm scroll-mt-6"><h2 className="text-2xl font-black">Gestão de Compras e Pagamentos</h2><div className="mt-4 overflow-x-auto"><table className="w-full min-w-[860px] text-left text-sm"><thead className="text-slate-500"><tr><th className="py-3">Código</th><th>Produto</th><th>Cliente</th><th>Valor</th><th>Método</th><th>Status</th><th>Data</th></tr></thead><tbody>{orders.map((order) => <tr key={order.id} className="border-t border-slate-100"><td className="py-3 font-black">{order.purchase_code}</td><td>{order.product_name}</td><td>{order.buyer_email}</td><td>{formatCurrency(order.amount || 0)}</td><td>{order.payment_method}</td><td>{order.payment_status}</td><td>{order.created_at ? new Date(order.created_at).toLocaleDateString("pt-BR") : "-"}</td></tr>)}</tbody></table>{orders.length === 0 ? <EmptyState text="Nenhuma compra encontrada." /> : null}</div></section>
+    <section id="banners" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm scroll-mt-6"><h2 className="text-2xl font-black">Gestão de Banners</h2><div className="mt-4 grid gap-3 md:grid-cols-2">{banners.map((banner) => <article key={banner.id} className="rounded-2xl bg-slate-50 p-4"><p className="font-black">{banner.title}</p><p className="text-sm text-slate-600">{banner.position} • {banner.active ? "ativo" : "inativo"}</p><AdminActionButton>Editar banner</AdminActionButton></article>)}{banners.length === 0 ? <EmptyState text="Nenhum banner cadastrado." /> : null}</div></section>
+    <section id="configuracoes" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm scroll-mt-6"><h2 className="text-2xl font-black">Configurações do Site</h2><p className="mt-2 text-sm text-slate-600">Área preparada para nome do site, e-mail, WhatsApp, links sociais, taxa da plataforma, rodapé, política de privacidade e termos de uso.</p><div className="mt-4 flex flex-wrap gap-2"><AdminActionButton>Editar configurações</AdminActionButton><AdminActionButton>Atualizar taxa</AdminActionButton></div></section>
+    <section id="notificacoes" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm scroll-mt-6"><h2 className="text-2xl font-black">Notificações Administrativas</h2><div className="mt-4 grid gap-3">{notifications.map((item) => <article key={item.id} className="rounded-2xl bg-slate-50 p-4"><p className="font-black">{item.title}</p><p className="mt-1 text-sm text-slate-600">{item.message}</p><p className="mt-2 text-xs font-bold text-slate-500">{item.notification_type} • {item.created_at ? new Date(item.created_at).toLocaleString("pt-BR") : ""}</p></article>)}{notifications.length === 0 ? <EmptyState text="Nenhuma notificação administrativa." /> : null}</div></section>
+    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900"><strong>Ambiente seguro:</strong> o acesso ao painel é validado no servidor por role admin em public.users. Usuários comuns continuam bloqueados.</section>
+  </div></main>;
 }

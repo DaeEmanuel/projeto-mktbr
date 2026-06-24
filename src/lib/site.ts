@@ -24,7 +24,7 @@ export const site = {
   brandSlogan: "Aprenda. Publique. Venda.",
   url: "https://mktbr.site",
   slogan:
-    "O ecossistema brasileiro para quem deseja aprender, criar conteÃºdo e vender produtos digitais em uma Ãºnica plataforma.",
+    "O ecossistema brasileiro para quem deseja aprender, criar conteúdo e vender produtos digitais em uma única plataforma.",
   stripePlanName: "Academia Pro",
 };
 
