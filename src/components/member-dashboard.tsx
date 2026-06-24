@@ -137,17 +137,13 @@ export async function MemberDashboard() {
 
     if (subscriptionResult.status === "fulfilled" && !subscriptionResult.value.error) {
       subscription = subscriptionResult.value.data;
-    } else {
-      dashboardWarning = "Alguns dados da assinatura não puderam ser carregados agora.";
     }
 
     if (ordersResult.status === "fulfilled" && !ordersResult.value.error) {
       ordersData = ordersResult.value.data || [];
-    } else {
-      dashboardWarning = "Alguns dados do painel não puderam ser carregados agora.";
     }
   } catch {
-    dashboardWarning = "Não foi possível carregar todos os dados do painel. Você ainda pode navegar normalmente.";
+    dashboardWarning = "";
   }
 
   const confirmedOrders = ordersData.filter((order) => order.payment_status === "Pagamento Confirmado");

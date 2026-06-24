@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { Bell, BookOpen, CreditCard, FileText, Home, ImageIcon, LayoutDashboard, Settings, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { formatCurrency } from "@/lib/money";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -26,19 +27,55 @@ export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirect=/dashboard/admin");
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).maybeSingle();
-  if (profile?.role !== "admin") return <AccessDenied />;
+  let profile: { id?: string; role?: string | null; blocked?: boolean | null; email?: string | null } | null = null;
+
+  try {
+    const adminClient = createAdminClient();
+    const { data: profileById } = await adminClient
+      .from("users")
+      .select("id, email, role, blocked")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    profile = profileById;
+
+    if ((!profile || profile.role !== "admin") && user.email) {
+      const { data: profileByEmail } = await adminClient
+        .from("users")
+        .select("id, email, role, blocked")
+        .ilike("email", user.email)
+        .maybeSingle();
+      profile = profileByEmail || profile;
+    }
+  } catch {
+    const { data: fallbackProfile } = await supabase
+      .from("users")
+      .select("id, email, role, blocked")
+      .eq("id", user.id)
+      .maybeSingle();
+    profile = fallbackProfile;
+  }
+
+  if (profile?.role !== "admin" || profile.blocked === true) return <AccessDenied />;
+
+  const dataClient = (() => {
+    try {
+      return createAdminClient();
+    } catch {
+      return supabase;
+    }
+  })();
 
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const monthStart = new Date(todayStart.getFullYear(), todayStart.getMonth(), 1);
   const [users, courses, books, orders, sales, banners, notifications] = await Promise.all([
-    safeList<UserRow>(supabase.from("users").select("id, name, email, role, created_at").order("created_at", { ascending: false }).limit(80)),
-    safeList<CourseRow>(supabase.from("courses").select("id, title, level, published, featured").order("created_at", { ascending: false }).limit(80)),
-    safeList<BookRow>(supabase.from("books").select("id, writer_id, title, price_cents, published, status, featured").order("created_at", { ascending: false }).limit(80)),
-    safeList<OrderRow>(supabase.from("orders").select("id, purchase_code, product_name, buyer_email, author_id, amount, payment_method, payment_status, created_at, paid_at").order("created_at", { ascending: false }).limit(80)),
-    safeList<SaleRow>(supabase.from("book_sales").select("id, writer_id, platform_commission_cents, writer_net_cents, sale_amount_cents").limit(80)),
-    safeList<BannerRow>(supabase.from("banners").select("id, title, position, active, featured").order("display_order", { ascending: true }).limit(80)),
-    safeList<NotificationRow>(supabase.from("admin_notifications").select("id, title, message, notification_type, created_at").order("created_at", { ascending: false }).limit(50)),
+    safeList<UserRow>(dataClient.from("users").select("id, name, email, role, created_at").order("created_at", { ascending: false }).limit(80)),
+    safeList<CourseRow>(dataClient.from("courses").select("id, title, level, published, featured").order("created_at", { ascending: false }).limit(80)),
+    safeList<BookRow>(dataClient.from("books").select("id, writer_id, title, price_cents, published, status, featured").order("created_at", { ascending: false }).limit(80)),
+    safeList<OrderRow>(dataClient.from("orders").select("id, purchase_code, product_name, buyer_email, author_id, amount, payment_method, payment_status, created_at, paid_at").order("created_at", { ascending: false }).limit(80)),
+    safeList<SaleRow>(dataClient.from("book_sales").select("id, writer_id, platform_commission_cents, writer_net_cents, sale_amount_cents").limit(80)),
+    safeList<BannerRow>(dataClient.from("banners").select("id, title, position, active, featured").order("display_order", { ascending: true }).limit(80)),
+    safeList<NotificationRow>(dataClient.from("admin_notifications").select("id, title, message, notification_type, created_at").order("created_at", { ascending: false }).limit(50)),
   ]);
   const authors = users.filter((item) => item.role === "author" || item.role === "admin");
   const paidOrders = orders.filter((order) => order.payment_status === "Pagamento Confirmado" || order.payment_status === "paid");

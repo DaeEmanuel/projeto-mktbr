@@ -60,26 +60,42 @@ async function notifyAdmins({
   supabase,
   body,
   orderId,
+  title = "Nova compra confirmada",
+  type = "admin_sale",
 }: {
   supabase: ReturnType<typeof createAdminClient>;
   body: string;
   orderId?: string | null;
+  title?: string;
+  type?: string;
 }) {
-  const { data: admins } = await supabase.from("users").select("id").eq("role", "admin");
+  await supabase.from("admin_notifications").insert({
+    title,
+    message: body,
+    notification_type: type,
+    order_id: orderId || null,
+    severity: "success",
+  });
+
+  const { data: admins } = await supabase
+    .from("users")
+    .select("id")
+    .eq("role", "admin")
+    .eq("blocked", false);
+
   await Promise.all(
     (admins || []).map((admin) =>
       createNotification({
         supabase,
         userId: admin.id,
-        title: "Nova compra confirmada",
+        title,
         body,
-        type: "admin_sale",
+        type,
         orderId,
       }),
     ),
   );
 }
-
 async function findUserIdForCustomer({
   supabase,
   customerId,
@@ -365,16 +381,27 @@ async function confirmSubscriptionPurchase({
     .select("id")
     .single();
 
-  await createNotification({
-    supabase,
-    userId,
-    title: "Assinatura renovada",
-    body: synced?.endDate
-      ? `Seu plano MKTBR Site Pro está ativo. Próxima renovação: ${new Date(synced.endDate).toLocaleDateString("pt-BR")}.`
-      : "Seu plano MKTBR Site Pro está ativo e seu acesso premium já foi liberado.",
-    type: "subscription",
-    orderId: order?.id || null,
-  });
+  const subscriptionBody = synced?.endDate
+    ? `Seu plano MKTBR Site Pro está ativo. Próxima renovação: ${new Date(synced.endDate).toLocaleDateString("pt-BR")}.`
+    : "Seu plano MKTBR Site Pro está ativo e seu acesso premium já foi liberado.";
+
+  await Promise.all([
+    createNotification({
+      supabase,
+      userId,
+      title: "Assinatura renovada",
+      body: subscriptionBody,
+      type: "subscription",
+      orderId: order?.id || null,
+    }),
+    notifyAdmins({
+      supabase,
+      title: "Assinatura confirmada",
+      type: "admin_subscription",
+      body: `Cliente: ${session.customer_details?.email || session.customer_email || userId}. Plano: MKTBR Site Pro. Valor: ${formatCurrency(session.amount_total || 0)}. Status: Pagamento Confirmado.`,
+      orderId: order?.id || null,
+    }),
+  ]);
 }
 
 async function handleInvoicePaid({
