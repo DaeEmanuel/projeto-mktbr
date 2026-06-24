@@ -7,29 +7,35 @@ export function PurchaseRealtimeNotice({ userId }: { userId: string }) {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`orders-confirmed-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "orders",
-          filter: `buyer_id=eq.${userId}`,
-        },
-        (payload) => {
-          const record = payload.new as { payment_status?: string; product_name?: string };
-          if (record.payment_status === "Pagamento Confirmado") {
-            setMessage(`Compra confirmada com sucesso! Seu acesso a ${record.product_name || "seu produto"} já foi liberado.`);
-          }
-        },
-      )
-      .subscribe();
+    if (!userId) return;
 
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+    try {
+      const supabase = createClient();
+      const channel = supabase
+        .channel(`orders-confirmed-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "orders",
+            filter: `buyer_id=eq.${userId}`,
+          },
+          (payload) => {
+            const record = payload.new as { payment_status?: string; product_name?: string };
+            if (record.payment_status === "Pagamento Confirmado") {
+              setMessage(`Compra confirmada com sucesso! Seu acesso a ${record.product_name || "seu produto"} ja foi liberado.`);
+            }
+          },
+        )
+        .subscribe();
+
+      return () => {
+        void supabase.removeChannel(channel);
+      };
+    } catch {
+      return undefined;
+    }
   }, [userId]);
 
   if (!message) return null;

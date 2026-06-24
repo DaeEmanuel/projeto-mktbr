@@ -1,5 +1,6 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import { CheckCircle2, Gem, PlayCircle, Radio, Sparkles, Trophy, Users, Video, Bell, BarChart3, Bot, Mail } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PurchaseRealtimeNotice } from "@/components/purchase-realtime-notice";
@@ -90,13 +91,29 @@ const memberTabs = [
 ];
 
 export async function MemberDashboard() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let supabase: Awaited<ReturnType<typeof createClient>> | null = null;
+  let user: User | null = null;
+  let authFailed = false;
+
+  try {
+    supabase = await createClient();
+    const userResult = await supabase.auth.getUser();
+    user = userResult.data.user;
+    authFailed = Boolean(userResult.error);
+  } catch {
+    authFailed = true;
+  }
 
   if (!user) {
-    redirect("/login");
+    if (authFailed) {
+      return <DashboardSessionFallback />;
+    }
+
+    redirect("/login?redirect=/meu-painel");
+  }
+
+  if (!supabase) {
+    return <DashboardSessionFallback />;
   }
 
   let subscription: { status?: string | null; plan_name?: string | null; subscription_status?: string | null; subscription_plan?: string | null } | null = null;
@@ -290,4 +307,24 @@ export async function MemberDashboard() {
   );
 }
 
-
+function DashboardSessionFallback() {
+  return (
+    <main className="min-h-screen bg-[#f4f8f3] px-4 py-16 text-[#061421]">
+      <section className="mx-auto max-w-2xl rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-[#00a843]">MEU PAINEL</p>
+        <h1 className="mt-4 text-3xl font-black">Sua sessao precisa ser renovada</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Seus dados continuam protegidos. Entre novamente para atualizar o acesso ao painel.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link href="/login?redirect=/meu-painel" className="rounded-lg bg-[#00c853] px-5 py-3 text-sm font-black text-[#061421]">
+            Entrar novamente
+          </Link>
+          <Link href="/" className="rounded-lg border border-slate-200 px-5 py-3 text-sm font-black">
+            Voltar para Home
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}

@@ -19,7 +19,7 @@ export function PasswordResetForm() {
 
     const supabase = createClient();
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getAppUrl()}/auth/callback?next=/redefinir-senha`,
+      redirectTo: `${getAppUrl()}/redefinir-senha`,
     });
 
     setLoading(false);

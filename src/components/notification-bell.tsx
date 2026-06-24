@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { Bell } from "lucide-react";
@@ -17,7 +17,7 @@ const fallbackNotifications = [
   "Nova venda realizada",
   "Compra aprovada",
   "Novo aluno matriculado",
-  "Novo comentário",
+  "Novo comentario",
   "Assinatura renovada",
 ];
 
@@ -26,32 +26,51 @@ export function NotificationBell({ userId }: { userId: string }) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
-    const supabase = createClient();
+    if (!userId) return;
 
-    async function loadNotifications() {
-      const { data } = await supabase
-        .from("notifications")
-        .select("id, title, body, notification_type, read_at, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      setNotifications((data || []) as NotificationItem[]);
+    let active = true;
+    let channel: ReturnType<ReturnType<typeof createClient>["channel"]> | null = null;
+
+    try {
+      const supabase = createClient();
+
+      async function loadNotifications() {
+        try {
+          const { data } = await supabase
+            .from("notifications")
+            .select("id, title, body, notification_type, read_at, created_at")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(10);
+
+          if (active) {
+            setNotifications((data || []) as NotificationItem[]);
+          }
+        } catch {
+          if (active) setNotifications([]);
+        }
+      }
+
+      void loadNotifications();
+
+      channel = supabase
+        .channel(`notifications-${userId}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+          (payload) => setNotifications((current) => [payload.new as NotificationItem, ...current].slice(0, 10)),
+        )
+        .subscribe();
+
+      return () => {
+        active = false;
+        if (channel) void supabase.removeChannel(channel);
+      };
+    } catch {
+      return () => {
+        active = false;
+      };
     }
-
-    void loadNotifications();
-
-    const channel = supabase
-      .channel(`notifications-${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-        (payload) => setNotifications((current) => [payload.new as NotificationItem, ...current].slice(0, 10)),
-      )
-      .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
   }, [userId]);
 
   const unreadCount = useMemo(() => notifications.filter((item) => !item.read_at).length, [notifications]);
@@ -75,7 +94,7 @@ export function NotificationBell({ userId }: { userId: string }) {
       {open ? (
         <div className="absolute right-0 top-13 z-50 w-[min(90vw,360px)] rounded-2xl border border-slate-200 bg-white p-3 text-[#061421] shadow-2xl">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <p className="font-black">Central de notificações</p>
+            <p className="font-black">Central de notificacoes</p>
             <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-black text-red-600">{unreadCount}</span>
           </div>
           <div className="mt-3 grid max-h-80 gap-2 overflow-y-auto">
