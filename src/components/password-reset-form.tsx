@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { getAppUrl } from "@/lib/app-url";
 import { translateAuthMessage } from "@/lib/auth-messages";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -18,8 +17,9 @@ export function PasswordResetForm() {
     setError("");
 
     const supabase = createClient();
+    const redirectOrigin = window.location.hostname === "localhost" ? window.location.origin : "https://www.mktbr.site";
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getAppUrl()}/redefinir-senha`,
+      redirectTo: `${redirectOrigin}/redefinir-senha`,
     });
 
     setLoading(false);

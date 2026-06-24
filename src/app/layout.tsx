@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthRecoveryRedirect } from "@/components/auth-recovery-redirect";
 import { VLibrasWidget } from "@/components/vlibras-widget";
 import { site } from "@/lib/site";
 
@@ -52,6 +53,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body>
+        <AuthRecoveryRedirect />
         {children}
         <VLibrasWidget />
       </body>
