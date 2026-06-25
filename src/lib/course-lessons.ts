@@ -26,14 +26,14 @@ export async function getPublishedLessonsByCourseSlug(slug: string): Promise<Cou
 
     const { data, error } = await supabase
       .from("lessons")
-      .select("id, title, description, video_url, position")
+      .select("id, title, description, position")
       .eq("course_id", course.id)
       .eq("published", true)
       .order("position", { ascending: true })
       .order("created_at", { ascending: true });
 
     if (error) return [];
-    return data || [];
+    return (data || []).map((lesson) => ({ ...lesson, video_url: null }));
   } catch {
     return [];
   }

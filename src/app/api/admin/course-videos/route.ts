@@ -63,6 +63,17 @@ async function getDefaultModule(courseId: string) {
   return data?.id || null;
 }
 
+async function signVideo(path: string | null) {
+  if (!path) return null;
+  const { data, error } = await createAdminClient().storage.from(BUCKET).createSignedUrl(path, 60 * 30);
+  if (error) return null;
+  return data.signedUrl;
+}
+
+async function hydrateLessonVideos<T extends { video_file_path?: string | null; video_url?: string | null }>(lessons: T[]) {
+  return Promise.all(lessons.map(async (lesson) => ({ ...lesson, video_url: await signVideo(lesson.video_file_path || null) })));
+}
+
 async function uploadVideo(file: File, courseId: string) {
   if (file.type !== "video/mp4" && !file.name.toLowerCase().endsWith(".mp4")) {
     throw new Error("INVALID_VIDEO_TYPE");
@@ -83,7 +94,7 @@ async function uploadVideo(file: File, courseId: string) {
   if (error) throw new Error("VIDEO_UPLOAD_FAILED");
   return {
     path: objectPath,
-    publicUrl: supabase.storage.from(BUCKET).getPublicUrl(objectPath).data.publicUrl,
+    signedUrl: await signVideo(objectPath),
   };
 }
 
@@ -115,14 +126,14 @@ export async function GET() {
       supabase
         .from("lessons")
         .select("id, course_id, title, description, video_url, video_file_path, position, published, updated_at, courses:course_id(title, slug)")
-        .not("video_url", "is", null)
+        .not("video_file_path", "is", null)
         .order("updated_at", { ascending: false })
         .limit(50),
     ]);
 
     if (coursesError) throw coursesError;
     if (lessonsError) throw lessonsError;
-    return NextResponse.json({ courses: courses || [], lessons: lessons || [] });
+    return NextResponse.json({ courses: courses || [], lessons: await hydrateLessonVideos(lessons || []) });
   } catch (error) {
     return adminErrorResponse(error);
   }
@@ -156,7 +167,7 @@ export async function POST(request: Request) {
     };
 
     if (upload) {
-      payload.video_url = upload.publicUrl;
+      payload.video_url = null;
       payload.video_file_path = upload.path;
     }
 

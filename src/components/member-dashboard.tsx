@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { CheckCircle2, Gem, PlayCircle, Radio, Sparkles, Trophy, Users, Video, Bell, BarChart3, Bot, Mail } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { MemberCourseGrid } from "@/components/member-course-grid";
 import { PurchaseRealtimeNotice } from "@/components/purchase-realtime-notice";
 import { courseModules, dashboardItems, publicCourses } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
@@ -272,18 +273,16 @@ export async function MemberDashboard() {
             </div>
             <Link href="/dashboard/meus-cursos" className="text-sm font-black text-[#128C3E]">Ver todos</Link>
           </div>
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
-            {publicCourses.map((course) => (
-              <article key={course.slug} className="rounded-2xl border border-slate-200 bg-[#f8fbf7] p-4 transition hover:-translate-y-0.5 hover:shadow-lg">
-                <p className="text-xs font-black uppercase text-[#00a843]">{course.level}</p>
-                <h3 className="mt-2 font-black text-[#061421]">{course.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{course.description}</p>
-                <Link href={`/cursos/${course.slug}`} className="mt-4 inline-flex rounded-full bg-[#05281f] px-4 py-2 text-sm font-black text-white">
-                  Continuar
-                </Link>
-              </article>
-            ))}
-          </div>
+          <MemberCourseGrid
+            courses={publicCourses.map((course) => {
+              const hasAccess = subscription?.subscription_status === "active" || subscription?.status === "active";
+              return {
+                ...course,
+                hasAccess,
+                status: hasAccess ? "Acesso liberado" : "Nao adquirido",
+              };
+            })}
+          />
         </div>
 
         <div className="rounded-[1.5rem] bg-white p-5 shadow-sm ring-1 ring-slate-200">

@@ -39,7 +39,12 @@ export default async function CursoPage({ params }: { params: Promise<{ slug: st
                     <h2 className="mt-2 text-2xl font-black text-[#061421]">{lesson.title}</h2>
                     {lesson.description ? <p className="mt-3 text-sm leading-6 text-slate-600">{lesson.description}</p> : null}
                   </div>
-                  {lesson.video_url ? <video src={lesson.video_url} controls className="aspect-video w-full rounded-xl bg-black" /> : null}
+                  <div className="rounded-xl bg-[#061421] p-5 text-white">
+                    <p className="text-sm font-black">Aula disponivel na Area de Membros</p>
+                    <p className="mt-2 text-sm leading-6 text-white/70">
+                      Entre no seu painel para assistir com acesso protegido.
+                    </p>
+                  </div>
                 </div>
               </article>
             ))}
