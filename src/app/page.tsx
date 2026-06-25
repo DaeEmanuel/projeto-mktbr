@@ -110,7 +110,7 @@ export default function Home() {
         <Section
           eyebrow="Plataforma"
           title="Tudo que uma plataforma de cursos precisa para começar"
-          text="Autenticação, catálogo, assinatura recorrente, dashboard do aluno e banco Supabase independente."
+          text="Autenticação, catálogo, assinatura recorrente, dashboard do aluno e banco de dados independente."
         >
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => {

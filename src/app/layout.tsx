@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s | MKTBR Site",
   },
   description:
-    "SaaS independente para cursos online com assinatura Stripe, Supabase, dashboard do aluno e deploy Vercel.",
+    "SaaS independente para cursos online com assinatura Stripe, dashboard do aluno e infraestrutura profissional.",
   keywords: [
     "MKTBR Site",
     "cursos online",

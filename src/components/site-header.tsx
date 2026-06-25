@@ -11,10 +11,7 @@ export function SiteHeader() {
           <span className="grid size-11 place-items-center rounded-md bg-[#00c853] text-[#061421] sm:size-12">
             <GraduationCap size={27} strokeWidth={2.5} />
           </span>
-          <span>
-            <span className="block text-2xl font-black leading-6 tracking-normal sm:text-[1.65rem]">{site.name}</span>
-            <span className="hidden text-xs text-white/60 sm:block">{site.brandTagline}</span>
-          </span>
+          <span className="block text-2xl font-black leading-6 tracking-normal sm:text-[1.65rem]">{site.name}</span>
         </Link>
         <nav className="hidden items-center gap-5 text-sm font-bold text-white/75 lg:flex">
           {navItems.map((item) => (

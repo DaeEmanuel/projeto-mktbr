@@ -16,7 +16,7 @@ export default function CursosPage() {
       <Section
         eyebrow="Cursos"
         title="Trilhas para marketing, vendas e automação"
-        text="A estrutura está pronta para cadastrar cursos, módulos, aulas, matrículas e progresso de alunos no Supabase."
+        text="A estrutura está pronta para cadastrar cursos, módulos, aulas, matrículas e progresso de alunos em um ambiente seguro e independente."
       >
         <div className="grid gap-4 md:grid-cols-3">
           {publicCourses.map((course) => (

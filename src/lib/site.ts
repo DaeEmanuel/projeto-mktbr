@@ -1,4 +1,4 @@
-﻿import {
+import {
   Award,
   BarChart3,
   BookOpen,
@@ -45,6 +45,14 @@ export const navItems = [
 ];
 
 export const publicCourses = [
+  {
+    slug: "curso-teste-mktbr",
+    title: "Curso de Teste MKTBR",
+    level: "Teste",
+    lessons: 1,
+    description:
+      "Ambiente de teste para validar player, upload de vídeo e experiência de aula antes da publicação oficial.",
+  },
   {
     slug: "whatsapp-marketing",
     title: "WhatsApp Marketing Profissional",
@@ -105,7 +113,7 @@ export const features = [
   {
     icon: GraduationCap,
     title: "Cursos online",
-    text: "Catalogo, modulos, aulas e progresso preparados para alunos assinantes.",
+    text: "Catálogo, módulos, aulas e progresso preparados para alunos assinantes.",
   },
   {
     icon: CreditCard,
@@ -115,22 +123,22 @@ export const features = [
   {
     icon: LayoutDashboard,
     title: "Dashboard do aluno",
-    text: "Area logada com cursos, trilhas, progresso, certificados e assinatura.",
+    text: "Área logada com cursos, trilhas, progresso, certificados e assinatura.",
   },
   {
     icon: BarChart3,
-    title: "Gestao educacional",
-    text: "Estrutura de banco para matriculas, aulas, progresso e pagamentos.",
+    title: "Gestão educacional",
+    text: "Estrutura de banco para matrículas, aulas, progresso e pagamentos.",
   },
   {
     icon: ShieldCheck,
-    title: "Supabase separado",
-    text: "Schema independente com RLS por usuario e funcoes privadas.",
+    title: "Banco de dados separado",
+    text: "Estrutura independente com segurança, permissões por usuário e funções privadas.",
   },
   {
     icon: LockKeyhole,
-    title: "Seguranca",
-    text: "Chaves secretas ficam no backend e rotas criticas validam autenticacao.",
+    title: "Segurança",
+    text: "Chaves secretas ficam no backend e rotas críticas validam autenticação.",
   },
 ];
 
