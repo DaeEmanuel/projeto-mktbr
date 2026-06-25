@@ -16,15 +16,17 @@ type LessonRow = {
   video_file_path: string | null;
 };
 
-function isActiveSubscription(status?: string | null) {
-  return status === "active" || status === "trialing";
+function isPaidActiveSubscription(subscription?: { status?: string | null; subscription_status?: string | null; subscription_plan?: string | null; plan_name?: string | null } | null) {
+  const status = subscription?.subscription_status || subscription?.status;
+  const plan = (subscription?.subscription_plan || subscription?.plan_name || "").toLowerCase();
+  return (status === "active" || status === "trialing") && !["free", "grátis", "grátis"].includes(plan);
 }
 
 async function hasCourseAccess(userId: string, course: { id: string; slug: string; title: string }) {
   const supabase = createAdminClient();
   const [{ data: profile }, { data: subscription }, { data: orders }, { data: enrollment }] = await Promise.all([
     supabase.from("users").select("role, blocked").eq("id", userId).maybeSingle(),
-    supabase.from("subscriptions").select("status, subscription_status").eq("user_id", userId).maybeSingle(),
+    supabase.from("subscriptions").select("status, subscription_status, subscription_plan, plan_name").eq("user_id", userId).maybeSingle(),
     supabase
       .from("orders")
       .select("product_id, product_name, payment_status")
@@ -35,7 +37,7 @@ async function hasCourseAccess(userId: string, course: { id: string; slug: strin
   ]);
 
   if (profile?.role === "admin" && profile.blocked !== true) return true;
-  if (isActiveSubscription(subscription?.subscription_status) || isActiveSubscription(subscription?.status)) return true;
+  if (isPaidActiveSubscription(subscription)) return true;
   if (enrollment?.status === "active") return true;
 
   return Boolean(

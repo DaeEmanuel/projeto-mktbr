@@ -275,7 +275,8 @@ export async function MemberDashboard() {
           </div>
           <MemberCourseGrid
             courses={publicCourses.map((course) => {
-              const hasAccess = subscription?.subscription_status === "active" || subscription?.status === "active";
+              const planCode = (subscription?.subscription_plan || subscription?.plan_name || "").toLowerCase();
+              const hasAccess = (subscription?.subscription_status === "active" || subscription?.status === "active") && !["free", "grátis", "grátis"].includes(planCode);
               return {
                 ...course,
                 hasAccess,

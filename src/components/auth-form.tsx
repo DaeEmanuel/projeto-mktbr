@@ -28,7 +28,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             password,
             options: {
               data: { name },
-              emailRedirectTo: `${getAppUrl()}/auth/callback?next=/meu-painel`,
+              emailRedirectTo: `${getAppUrl()}/auth/callback?next=${encodeURIComponent(new URLSearchParams(window.location.search).get("plano") === "gratis" ? "/api/subscriptions/free" : "/meu-painel")}`,
             },
           })
         : await supabase.auth.signInWithPassword({ email, password });

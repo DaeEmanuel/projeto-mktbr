@@ -1,8 +1,18 @@
 import { Check } from "lucide-react";
 import { CheckoutButton } from "@/components/checkout-button";
+import { FreePlanButton } from "@/components/free-plan-button";
 import { Section } from "@/components/section";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+
+const freeBenefits = [
+  "Pagina no mktbr.site/loja ou nome do usuario",
+  "Geolocalizacao no Google Maps",
+  "Horario de funcionamento",
+  "Informacoes de contato",
+  "Cadastro gratuito",
+  "Acesso basico ao painel do usuario",
+];
 
 const basicBenefits = [
   "Publicacao de cursos",
@@ -35,9 +45,31 @@ export default function PlanosPage() {
       <Section
         eyebrow="Assinatura"
         title="Planos MKTBR Site"
-        text="Escolha o plano ideal para vender cursos online, acompanhar alunos e crescer com pagamentos via Stripe."
+        text="Escolha o plano ideal para comecar grátis, vender cursos online, acompanhar alunos e crescer com pagamentos via Stripe."
       >
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-3xl font-black">Grátis</h2>
+            <p className="mt-3">
+              <span className="text-5xl font-black">R$ 0</span>
+              <span className="text-slate-500">/mes</span>
+            </p>
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              Pagina basica no MKTBR. Ideal para comecar sem custo.
+            </p>
+            <div className="mt-6 grid gap-3">
+              {freeBenefits.map((benefit) => (
+                <p key={benefit} className="flex items-center gap-2 font-semibold">
+                  <Check size={19} className="text-[#00c853]" />
+                  {benefit}
+                </p>
+              ))}
+            </div>
+            <div className="mt-7">
+              <FreePlanButton />
+            </div>
+          </div>
+
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-3xl font-black">MKTBR</h2>
             <p className="mt-3">
